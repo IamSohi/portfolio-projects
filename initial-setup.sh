@@ -1,65 +1,63 @@
 #!/bin/bash
 
-# Base directories
-mkdir -p packages/shared packages/ui packages/utils apps/backend apps/frontend
+# Ensure script is run from the root directory
+if [ "$(basename "$PWD")" != "portfolio-projects" ]; then
+  echo "Please run this script from the root 'portfolio-projects' directory."
+  exit 1
+fi
 
-# Shared folder structure and initial files
-mkdir -p packages/shared/{constants,types,helpers}
-touch packages/shared/constants/index.ts
-touch packages/shared/types/index.ts
-touch packages/shared/helpers/index.ts
+# Create the main folders
+mkdir -p apps/{writing-platform,code-review-assistant,learning-assistant,task-manager}
+mkdir -p shared/{utils,constants,types}
+mkdir -p infrastructure/aws-modules
+mkdir -p packages/{frontend,backend}
 
-# UI package structure (for shared components)
-mkdir -p packages/ui/{components,styles,utils}
-touch packages/ui/components/index.ts
-touch packages/ui/styles/global.css
-touch packages/ui/utils/index.ts
+# Create base files for each section
+# Root-level files
+touch .env .gitignore tsconfig.json
 
-# Utils package structure (for shared utility functions)
-mkdir -p packages/utils
-touch packages/utils/index.ts
-
-# Create tsconfig.json for shared settings
+# Initialize tsconfig.json with base config
 cat <<EOL > tsconfig.json
 {
   "compilerOptions": {
     "target": "es2020",
     "module": "commonjs",
-    "lib": ["dom", "es2020"],
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["packages/shared/*"],
-      "@ui/*": ["packages/ui/*"],
-      "@utils/*": ["packages/utils/*"]
+      "@shared/*": ["shared/*"],
+      "@frontend/*": ["packages/frontend/*"],
+      "@backend/*": ["packages/backend/*"]
     },
-    "outDir": "./dist"
+    "skipLibCheck": true
   },
-  "include": ["apps/**/*", "packages/**/*"]
+  "include": ["apps/**/*", "shared/**/*", "packages/**/*"]
 }
 EOL
 
-# Environment files setup
-touch .env .env.local
-
-# Backend .env file
-cat <<EOL > apps/backend/.env
-DATABASE_URL=
-API_KEY=
+# Initialize .gitignore
+cat <<EOL > .gitignore
+node_modules/
+dist/
+.env
 EOL
 
-# Frontend .env file
-cat <<EOL > apps/frontend/.env
-NEXT_PUBLIC_API_BASE_URL=
-NEXT_PUBLIC_ANALYTICS_ID=
-EOL
+# Create placeholder README files for each section
+echo "# Writing Platform App" > apps/writing-platform/README.md
+echo "# Code Review Assistant App" > apps/code-review-assistant/README.md
+echo "# Learning Assistant App" > apps/learning-assistant/README.md
+echo "# Task Manager App" > apps/task-manager/README.md
+echo "# Shared Utilities" > shared/utils/README.md
+echo "# Shared Constants" > shared/constants/README.md
+echo "# Shared Types" > shared/types/README.md
+echo "# Frontend Package" > packages/frontend/README.md
+echo "# Backend Package" > packages/backend/README.md
+echo "# AWS Infrastructure Modules" > infrastructure/aws-modules/README.md
 
-# Sample README in shared packages
-echo "# Shared Constants" > packages/shared/constants/README.md
-echo "# Shared Types" > packages/shared/types/README.md
-echo "# Shared Helpers" > packages/shared/helpers/README.md
+# Update package.json with Turborepo-specific scripts
+# Assumes the root package.json exists
+npx json -I -f package.json -e 'this.scripts={ "dev": "turbo run dev", "build": "turbo run build", "lint": "turbo run lint", "test": "turbo run test" }'
 
-echo "Project structure setup complete!"
+# Inform the user of successful setup
+echo "Directory structure and initial files created successfully."

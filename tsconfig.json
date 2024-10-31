@@ -2,18 +2,15 @@
   "compilerOptions": {
     "target": "es2020",
     "module": "commonjs",
-    "lib": ["dom", "es2020"],
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["packages/shared/*"],
-      "@ui/*": ["packages/ui/*"],
-      "@utils/*": ["packages/utils/*"]
+      "@shared/*": ["shared/*"],
+      "@frontend/*": ["packages/frontend/*"],
+      "@backend/*": ["packages/backend/*"]
     },
-    "outDir": "./dist"
+    "skipLibCheck": true
   },
-  "include": ["apps/**/*", "packages/**/*"]
+  "include": ["apps/**/*", "shared/**/*", "packages/**/*"]
 }
