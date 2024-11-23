@@ -1,3 +1,12 @@
 node_modules/
 dist/
 .env
+.env.local
+.env.development
+
+.env.test
+.env.production
+.env.staging
+template.yaml
+packaged.yaml
+infrastructure/

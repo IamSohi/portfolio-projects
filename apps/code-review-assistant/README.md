@@ -1,1 +1,1 @@
-# Code Review Assistant App
+# code-review-assistant Project

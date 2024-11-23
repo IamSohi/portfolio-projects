@@ -1,1 +1,1 @@
-# Writing Platform App
+# writing-platform Project

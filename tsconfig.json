@@ -2,15 +2,40 @@
   "compilerOptions": {
     "target": "es2020",
     "module": "commonjs",
+    "lib": ["ES2020"],
     "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "outDir": "dist",
+    "rootDir": "./",
+    "sourceMap": true,
     "esModuleInterop": true,
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["shared/*"],
       "@frontend/*": ["packages/frontend/*"],
-      "@backend/*": ["packages/backend/*"]
+      "@backend/*": ["packages/backend/*"],
+      "@services/*": ["apps/writing-platform/backend/src/services/*"],
+      "@auth": ["packages/auth"],
+      "@packages-utils": ["packages/utils"],
     },
     "skipLibCheck": true
   },
-  "include": ["apps/**/*", "shared/**/*", "packages/**/*"]
+  "include": ["src/**/*", "apps/**/*", "shared/**/*", "packages/**/*"],
+  "exclude": ["node_modules", "**/*.test.ts","packages/frontend/**/*",
+  "packages/backend/**/*", "packages/typescript-config/**/*", "packages/shared/**/*",
+  "packages/eslint-config/**/*",
+  "apps/writing-platform/frontend/**/*", "apps/web/**/*", "apps/docs/**/*",
+  "apps/writing-platform/backend/src/services/**/*",
+  "apps/writing-platform/backend/src/services/*",
+  "@services/*",
+  "@auth/*",
+  "@packages-utils/*",
+  "apps/writing-platform/backend/src/services/authService.ts",
+  "packages/auth/**/*",
+  "packages/auth",
+  "packages/utils",
+  "packages/utils/**/*",
+]
+
 }

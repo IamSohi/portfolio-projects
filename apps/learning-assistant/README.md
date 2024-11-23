@@ -1,1 +1,1 @@
-# Learning Assistant App
+# learning-assistant Project

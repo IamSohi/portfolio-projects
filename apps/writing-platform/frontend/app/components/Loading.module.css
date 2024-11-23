@@ -1,0 +1,17 @@
+.loading {
+    position: inherit;
+    width: inherit;
+    height: 65%;
+    display: flex;
+    margin-bottom: 1rem;
+    border-radius: 12px;
+    border: 1px solid #ccc;
+    place-content: center;
+    place-items: center;
+  }
+  
+  .loading img {
+    width: 64px;
+    height: 64px;
+    opacity: 0.2;
+  }

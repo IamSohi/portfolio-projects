@@ -1,0 +1,19 @@
+{
+    "extends": "./typescript-config/base.json",
+    "compilerOptions": {
+      "outDir": "./dist",
+      "rootDir": "./",
+      "baseUrl": "."
+    },
+    "include": [    
+        "./auth/**/*.ts",
+        "./utils/**/*.ts"
+    ],
+    "exclude": ["node_modules",
+        "**/*.test.ts",
+        "frontend/**/*",
+        "backend/**/*",
+        "typescript-config/**/*",
+        "eslint-config/**/*",
+    ]
+}

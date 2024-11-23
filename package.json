@@ -2,12 +2,22 @@
   "name": "portfolio-projects",
   "private": true,
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
-    "test": "turbo run test"
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "start": "DOCKER_HOST=unix:///Users/home/.docker/run/docker.sock sam local start-api --template ./infrastructure/writing-platform/template.yaml --profile mrsohi",
+    "validate": "sam validate --template-file ./infrastructure/writing-platform/template.yaml",
+    "package": "sam package --template-file ./infrastructure/writing-platform/template.yaml --output-template-file ./infrastructure/writing-platform/packaged.yaml --s3-bucket portfolio-projects-artifacts",
+    "deploy": "sam deploy --guided --template-file ./infrastructure/writing-platform/template.yaml --stack-name portfolio-projects-stack --capabilities CAPABILITY_IAM --region us-west-2 --s3-bucket portfolio-projects-artifacts --profile mrsohi",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "esbuild": "tsc && node infrastructure/writing-platform/esbuild.mjs",
+    "watch": "tsc -w",
+    "test": "jest",
+    "clean": "rm -rf dist"
   },
   "devDependencies": {
+    "@types/node": "^22.9.0",
+    "esbuild-plugin-alias": "^0.2.1",
     "prettier": "^3.2.5",
     "turbo": "^2.2.3",
     "typescript": "5.5.4"
@@ -17,7 +27,9 @@
   },
   "packageManager": "npm@10.7.0",
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "apps/writing-platform",
+    "packages/backend",
+    "packages/frontend",
+    "packages/auth"
   ]
 }

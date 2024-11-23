@@ -1,0 +1,8 @@
+{
+    "external": ["jsonwebtoken", "@auth", "@aws-sdk/client-dynamodb", "openai", "@packages-utils"],
+    "define": {
+        "@services/*": "/opt/services/*",
+        "@package-utils/*": "/opt/dist/utils/*",
+        "@auth/*": "/opt/dist/auth/*"
+    }
+}
