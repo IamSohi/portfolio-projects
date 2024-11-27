@@ -15,13 +15,15 @@ declare global {
     // The Storage tree for the room, for useMutation, useStorage, etc.
     Storage: {
       // suggestions: LiveObject<string[] & { [key: string]: string }>;
-      suggestions: LiveObject<{
+      suggestionData: LiveObject<{
         // suggestions: string[];
+        text: string;
+        correctedText: string;
         suggestions: {
           type: 'grammar' | 'style' | 'word-choice';
           message: string;
-          start: number; // Character position where the suggestion applies
-          end: number;
+          // start: number; // Character position where the suggestion applies
+          // end: number;
         }[];
         
       }>;

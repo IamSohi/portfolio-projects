@@ -101,7 +101,6 @@ console.log("session", session)
 
 
   
-  // const userId = Math.floor(Math.random() * 10) % USER_INFO.length;
 
   // Create a session for the current user
   // userInfo is made available in Liveblocks presence hooks, e.g. useOthers
@@ -111,6 +110,10 @@ console.log("session", session)
     //   role: 'admin',
     // },
   });
+  // const userId = Math.floor(Math.random() * 10) % USER_INFO.length;
+  // const liveblocksSession = liveblocks.prepareSession(`user-${userId}`, {
+  //   userInfo: USER_INFO[userId],
+  // });
 
   console.log("liveblocksSession..", liveblocksSession)
 

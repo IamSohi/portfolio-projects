@@ -2,6 +2,7 @@
 import * as React from 'react';
 import GlobalStyles from '@mui/joy/GlobalStyles';
 import Avatar from '@mui/joy/Avatar';
+import Image from 'next/image';
 import Box from '@mui/joy/Box';
 import Divider from '@mui/joy/Divider';
 import IconButton from '@mui/joy/IconButton';
@@ -20,10 +21,13 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useRouter } from 'next/navigation';
-import { LiveObject } from "@liveblocks/client";
+import { LiveObject } from '@liveblocks/client'; // Liveblocks integration
+import { useClient } from "@liveblocks/react/suspense";
+import { useSession } from 'next-auth/react'; // For protected routes
 
 import ColorSchemeToggle from './ColorSchemeToggle';
 import { closeSidebar } from '../utils';
+import SignOut from './Signout';
 
 const MAX_DOCUMENTS = 5;
 
@@ -74,19 +78,29 @@ interface Props{
   isSaved: boolean;
   setIsSaved: React.Dispatch<React.SetStateAction<boolean>>;
   documents: DocumentsObj;
+  documentId: string | null;
+  selectedDocId: string | null;
+  setSelectedDocId: React.Dispatch<React.SetStateAction<string | null>>;
   setRoomId: React.Dispatch<React.SetStateAction<string>>;
   setDocuments: React.Dispatch<React.SetStateAction<DocumentsObj>>;
 }
 
-export default function Sidebar({ editorInstance, isSaved, setIsSaved, documents, setDocuments, setRoomId }: Props): JSX.Element {
+export default function Sidebar({ editorInstance, isSaved, setIsSaved, documents, selectedDocId, setSelectedDocId, documentId, setDocuments, setRoomId }: Props): JSX.Element {
   const router = useRouter();
-  const [selectedDocId, setSelectedDocId] = React.useState<string | null>("collabDoc");
-    
+  const client = useClient();
+  const { data: session, status } = useSession();
+
   // Load documents from local storage
   React.useEffect(() => {
+    console.log("in useEffect sidebar")
     const storedDocuments = localStorage.getItem('documents');
+    console.log(storedDocuments)
+
     if (storedDocuments) {
       const parsedDocuments = JSON.parse(storedDocuments);
+    console.log(parsedDocuments)
+    console.log(Object.keys(parsedDocuments).length)
+
       if(Object.keys(parsedDocuments).length === 0) {
           setIsSaved(false);
           const newDocument = initializeDocuments(); 
@@ -99,72 +113,33 @@ export default function Sidebar({ editorInstance, isSaved, setIsSaved, documents
             setSelectedDocId(docId);
           }
       }
-    }  
+    }
+
   }, []);
 
   // Initialize blank document
   const initializeDocuments = () => {
     const newDocId = crypto.randomUUID(); 
     const randomInt = Math.floor(Math.random() * 10000);
-    const newDocName = `Doc${randomInt}`;  
-    return {[newDocId]: { name: newDocName, content: {"type": "doc", "content": []}, timestamp: Date.now() }};
+    const newDocName = `Doc${randomInt}`; 
+    return {[newDocId]: { name: newDocName, content: {"type": "doc", "content": []}, roomId: `liveblocks:examples:personal-doc-${newDocId}`, timestamp: Date.now() }};
   }
 
   //Set content of editor when document is selected
   React.useEffect(() => {
+    console.log(documents)
     localStorage.setItem('documents', JSON.stringify(documents));
-    const docId = selectedDocId? selectedDocId : Object.keys(documents)[0]; 
-    if (editorInstance && documents[docId] && selectedDocId !== "collabDoc") {
-      editorInstance.commands.setContent(documents[docId].content);
-    }
+    // const docId = selectedDocId? selectedDocId : Object.keys(documents)[0]; 
+    // if (editorInstance && documents[docId] && selectedDocId !== "collabDoc") {
+    //   editorInstance.commands.setContent(documents[docId].content);
+    // }
   }, [documents]);
   
   
-  React.useEffect(() => {
-    if (selectedDocId) {
-      // Update the URL with the selected document's ID
-      router.push(`/#${selectedDocId}`);
-    }
-    // let leaveRoomRef: any;
-    if(selectedDocId === "collabDoc") {
-    //   if(leaveRoomRef) leaveRoomRef();
-    //   const { room, leave } = client.enterRoom("liveblocks:examples:collab-room-id", {
-    //     initialPresence: { cursor: { x: 0, y: 0 }, role: "user" },
-    //     initialStorage: {   suggestions: new LiveObject({
-    //       suggestions: [],
-    //     }),
-    //   },
-    //   });
-    //   console.log(room)
-    //   console.log("switched the room id to")
-    //   leaveRoomRef = leave;
-      setRoomId("liveblocks:examples:collab-room-id")
-    }else{
-      const newRoomId = "liveblocks:examples:"+selectedDocId;
-      setRoomId(newRoomId)
-    
-
-    //   if(leaveRoomRef) leaveRoomRef();
-    //   const { room, leave } = client.enterRoom(`liveblocks:examples:${selectedDocId}`, {
-    //     initialPresence: { cursor: { x: 0, y: 0 }, role: "user" },
-    //     initialStorage: {   suggestions: new LiveObject({
-    //       suggestions: [],
-    //     }),
-    //   },
-    //   });
-    //   console.log(room)
-    //   console.log("switched the room id to")
-
-    //   leaveRoomRef = leave;
-    //   // setRoomId(selectedDocId || "liveblocks:examples:personalDoc".concat('-',crypto.randomUUID()))
-    }
-
-    // return() => { 
-    //   leaveRoomRef();
-    // }
-  }, [selectedDocId, router]);
+  
 
   const handleAddDocument = () => {
+    
     if (!isSaved) { 
       toast.info('Save your current document before adding a new one.', {
         position: "top-right",
@@ -178,27 +153,13 @@ export default function Sidebar({ editorInstance, isSaved, setIsSaved, documents
       });
       return; 
     }
-
-
-    if (editorInstance) {
+    if (documents && Object.keys(documents).length < MAX_DOCUMENTS) {
+      const newDocument = initializeDocuments();
+      setSelectedDocId(Object.keys(newDocument)[0]);
+      setDocuments({...documents, ...newDocument});
       setIsSaved(false);
-
-        // Clear the editor
-        editorInstance.commands.clearContent(); 
-
-        if (documents && Object.keys(documents).length < MAX_DOCUMENTS) {
-          const newDocument = initializeDocuments();
-          setSelectedDocId(Object.keys(newDocument)[0]);
-          setDocuments({...documents, ...newDocument});
-        }
-        // Add new document (you might need to adjust this based on your actual logic)
-        // const newDocName = `Doc ${Object.keys(documents).length + 1}`;
-        // setDocuments([...documents, { name: newDocName }]);
-      
     }
   };
-
-
 
   const handleDeleteDocument = (docId: string) => {
     setDocuments((prevDocuments) => {
@@ -207,15 +168,11 @@ export default function Sidebar({ editorInstance, isSaved, setIsSaved, documents
         delete updatedDocuments[docId];
         if(Object.keys(updatedDocuments).length === 0) {
           const newDocument = initializeDocuments();
-          // router.push(`/#${Object.keys(newDocument)[0]}`); 
-
           return newDocument;
         }else{
-          // router.push(`/#${Object.keys(updatedDocuments)[0]}`); 
           console.log(updatedDocuments)
           return updatedDocuments;
         }
-        
       }
       return prevDocuments;
     });
@@ -223,16 +180,8 @@ export default function Sidebar({ editorInstance, isSaved, setIsSaved, documents
   };
   
   const handleDocClick = (docId: string) => {
-    // Update the URL with the selected document's ID
     setSelectedDocId(docId);
-    // Update the editor content
-    if(docId === "collabDoc") return;
-    console.log(documents[docId].content)
-    if (editorInstance) {
-      editorInstance.commands.setContent(documents[docId].content);
-    }
   };
-
 
   return (
     <Sheet
@@ -287,9 +236,16 @@ export default function Sidebar({ editorInstance, isSaved, setIsSaved, documents
         onClick={() => closeSidebar()}
       />
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-        <IconButton variant="soft" color="primary" size="sm">
+        {/* <IconButton variant="soft" color="primary" size="sm">
           <BrightnessAutoRoundedIcon />
-        </IconButton>
+        </IconButton> */}
+        <Image 
+            src="/logo.png" 
+            alt="Logo" 
+            width={50} 
+            height={54} 
+            className="mb-2"
+          />
         <Typography level="title-lg">Collab AI</Typography>
         <ColorSchemeToggle sx={{ ml: 'auto' }} />
       </Box>
@@ -424,15 +380,14 @@ export default function Sidebar({ editorInstance, isSaved, setIsSaved, documents
         <Avatar
           variant="outlined"
           size="sm"
-          src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=286"
+          src= {`/${session?.user.accessToken.name.split(" ").slice(0, 1)[0]}.jpeg`}
+          //{}
         />
         <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography level="title-sm">Siriwat K.</Typography>
-          <Typography level="body-xs">siriwatk@test.com</Typography>
+          <Typography level="title-sm">{session?.user.accessToken.name}</Typography>
+          <Typography level="body-xs">{session?.user.accessToken.email}</Typography>
         </Box>
-        <IconButton size="sm" variant="plain" color="neutral">
-          <LogoutRoundedIcon />
-        </IconButton>
+        <SignOut />
       </Box>
     </Sheet>
   );

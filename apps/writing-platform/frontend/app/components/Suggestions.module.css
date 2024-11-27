@@ -1,3 +1,20 @@
 .highlight-grammar { background-color: #ffe6e6; } /* Light red */
 .highlight-style { background-color: #e6f7ff; } /* Light blue */
 .highlight-word-choice { background-color: #f6ffe6; } /* Light green */
+.error {
+  text-decoration: underline;
+  color: red;
+}
+
+.word-choice {
+  color: blue;
+}
+
+.style {
+  color: green;
+}
+
+.corrected-text {
+  cursor: pointer;
+  font-weight: bold;
+}

@@ -10,12 +10,20 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
+      // Updated condition to check if the user is on the login page
+      const isOnLoginPage = nextUrl.pathname.startsWith('/login'); 
+      if (isOnLoginPage) {
+        if (isLoggedIn) {
+          return Response.redirect(new URL('/#collabDoc', nextUrl));
+        }
+        return true; // Allow access to the login page
+      }
       const isOnDashboard = nextUrl.pathname.startsWith('/');
       if (isOnDashboard) {
         if (isLoggedIn) return true;
         return false; // Redirect unauthenticated users to login page
       } else if (isLoggedIn) {
-        return Response.redirect(new URL('/', nextUrl));
+        return Response.redirect(new URL('/#collabDoc', nextUrl));
       }
       return true;
     },

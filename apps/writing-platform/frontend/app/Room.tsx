@@ -8,7 +8,9 @@ import { Loading } from "@/app/components/Loading";
 import { LiveObject } from "@liveblocks/client";
 
 const initialStorage = {
-  suggestions: new LiveObject({
+  suggestionData: new LiveObject({
+    text: '',
+    correctedText: '',
     suggestions: [],
   }),
 };
@@ -31,15 +33,16 @@ export function Room({ children, roomId }: { children: ReactNode, roomId: string
   //   updateMyPresence({ role: "admin" });
   // }
 
+  
+
   return (
     <RoomProvider
       id={roomId}
       initialPresence={{
-        cursor: null,
-        role: "admin",
+        cursor: { x: 0, y: 0 },
+        role: "user",
       }}
       initialStorage={initialStorage}
-
     >
       {/* <ClientSideSuspense fallback={<Loading />}>{children}</ClientSideSuspense> */}
       {children}

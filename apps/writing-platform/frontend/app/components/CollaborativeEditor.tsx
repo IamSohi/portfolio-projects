@@ -14,6 +14,10 @@ import { Avatars } from "@/app/components/Avatars";
 import { useMyPresence, useOthers } from "@liveblocks/react";
 import { useSyncStatus } from "@liveblocks/react";
 
+import CharacterCount from '@tiptap/extension-character-count'
+import Document from '@tiptap/extension-document'
+import Paragraph from '@tiptap/extension-paragraph'
+import Text from '@tiptap/extension-text'
 
 
 
@@ -32,10 +36,9 @@ export function CollaborativeEditor({editorInstance}:Props) {
     console.log("room from collaborative editor")
 
     console.log(room)
-    console.log(room.fetchYDoc("c86d5f42-b90d-456c-b8c7-f9acf2c351e8"));
     console.log("yDoc.........")
-      const yDoc = new Y.Doc();
-      console.log(yDoc)
+    const yDoc = new Y.Doc();
+    console.log(yDoc)
 
     const yProvider = new LiveblocksYjsProvider(room, yDoc);
     setDoc(yDoc);
@@ -69,10 +72,8 @@ function TiptapEditor({ doc, provider, editorInstance }: EditorProps) {
   const self = useSelf((me) => me);
   const [myPresence, updateMyPresence] = useMyPresence();
   const others = useOthers();
-
+  const limit = 500;
 const syncStatus = useSyncStatus();
-console.log("syncStatus............")
-console.log(syncStatus)
   console.log("provider.............");
   console.log(provider)
   console.log("doc")
@@ -85,21 +86,14 @@ console.log(syncStatus)
   const allPresenceObjects = others.map((other) => other.presence);
   console.log(allPresenceObjects)
 
+  
+
   const isAdmin = useMemo(() => {
     if (others.length === 0) {
       return true;
     }
     return others.every((other) => self.connectionId < other.connectionId);
   }, [self.connectionId, others]);
-  // useEffect(()=>{
-  //     console.log(isAdmin && myPresence.role !== "admin")
-  //     console.log(!isAdmin && myPresence.role === "admin")
-  //     console.log(isAdmin && myPresence.role === "admin")
-  //     console.log(isAdmin)
-    
-  //   },[editorInstance])
-
-  // console.log("isAdmin..... ", isAdmin)
       useEffect(() => {
     // Update the user's role based on the isAdmin status
     if (isAdmin && myPresence.role !== "admin") {
@@ -119,9 +113,16 @@ console.log(syncStatus)
     },
     immediatelyRender: false,
     extensions: [
+      Document,
+      Paragraph,
+      Text,
+      CharacterCount.configure({
+        limit,
+      }),
       StarterKit.configure({
         // The Collaboration extension comes with its own history handling
         history: false,
+        
       }),
       // Register the document with Tiptap
       Collaboration.configure({
@@ -132,8 +133,77 @@ console.log(syncStatus)
         provider: provider,
         user: userInfo,
       }),
+
     ],
+
+
   });
+
+  // useEffect(() => {
+  //   if (editor) {
+  //     setTimeout(() => { 
+  //       editor.commands.setTextSelection({
+  //         from: editor.state.doc.content.size,
+
+  //         to: editor.state.doc.content.size,
+  //       });
+  //     }, 0); 
+
+  //     console.log("cursor position")
+  //     console.log(editor.state.doc.content.size)
+  //   }
+  // }, [editor]);
+
+  // useEffect(() => {
+  //   if (editor && !editor.isDestroyed) {
+  //     // Wait a short moment to ensure content is fully loaded
+  //     setTimeout(() => {
+  //       // Get the total document length
+  //       const documentLength = editor.state.doc.content.size;
+  
+
+  //       console.log("documentLength")
+  //       console.log(documentLength)
+  //       // Set the cursor at the end of the document
+  //       editor.commands.setTextSelection({
+  //         from: documentLength,
+  //         to: documentLength
+  //       });
+  
+  //       // Focus the editor (optional, but often desired)
+  //       editor.commands.focus();
+  //     }, 0);
+  //   }
+  // }, [editor]);
+  useEffect(() => {
+    if (editor) {
+      // Wait for a brief moment to ensure the editor is fully initialized
+      const timer = setTimeout(() => {
+        // Move cursor to the end of the document
+        editor.commands.focus('end');
+        editor.commands.selectTextblockEnd()
+        console.log("cursor position")
+        console.log(editor.state.selection)
+        console.log(editor.state.selection.head)
+        let {from, to} = editor.state.selection;
+		editor.commands.setTextSelection({from, to});
+    console.log(from,to)
+
+      }, 0);
+
+      return () => clearTimeout(timer);
+    }
+  }, [editor]);
+
+  
+
+  const percentage = editor
+  ? Math.round((100 / limit) * editor.storage.characterCount.characters())
+  : 0;
+
+  const isWarning = editor?.storage.characterCount.characters() === limit;
+
+
 
   useEffect(() => {
 
@@ -152,6 +222,34 @@ console.log(syncStatus)
         <Avatars />
       </div>
       <EditorContent editor={editor} className={styles.editorContainer} />
+      <div className={`${styles['character-count']} ${isWarning ? styles['character-count--warning'] : ''}`}>
+      <svg
+        className={isWarning ? styles['character-count__svg'] : ''}
+        height="20"
+        width="20"
+        viewBox="0 0 20 20"
+      >
+        <circle r="10" cx="10" cy="10" fill="#e9ecef" />
+        <circle
+          r="5"
+          cx="10"
+          cy="10"
+          fill="transparent"
+          stroke="currentColor"
+          strokeWidth="10"
+          strokeDasharray={`calc(${percentage} * 31.4 / 100) 31.4`}
+          transform="rotate(-90) translate(-20)"
+        />
+        <circle r="6" cx="10" cy="10" fill="white" />
+      </svg>
+
+      <div>
+        {editor?.storage.characterCount.characters()} / {limit} characters
+        <br />
+        {editor?.storage.characterCount.words()} words
+      </div>
+    </div>
+
     </div>
   );
 }
