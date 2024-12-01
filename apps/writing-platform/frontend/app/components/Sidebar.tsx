@@ -1,146 +1,95 @@
+// Sidebar.tsx is a component that displays the sidebar of the application. It contains a list of documents that the user can select from. The user can also add new documents, delete existing documents, and switch between personal and collab documents. The sidebar also displays the user's profile information and provides an option to sign out.
 'use client';
-import * as React from 'react';
-import GlobalStyles from '@mui/joy/GlobalStyles';
-import Avatar from '@mui/joy/Avatar';
-import Image from 'next/image';
-import Box from '@mui/joy/Box';
-import Divider from '@mui/joy/Divider';
-import IconButton from '@mui/joy/IconButton';
-import List from '@mui/joy/List';
-import ListItem from '@mui/joy/ListItem';
-import ListItemButton, { listItemButtonClasses } from '@mui/joy/ListItemButton';
-import ListItemContent from '@mui/joy/ListItemContent';
-import Typography from '@mui/joy/Typography';
-import Sheet from '@mui/joy/Sheet';
-import GroupRoundedIcon from '@mui/icons-material/GroupRounded';
-import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
-import BrightnessAutoRoundedIcon from '@mui/icons-material/BrightnessAutoRounded';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import React, { useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useRouter } from 'next/navigation';
-import { LiveObject } from '@liveblocks/client'; // Liveblocks integration
-import { useClient } from "@liveblocks/react/suspense";
-import { useSession } from 'next-auth/react'; // For protected routes
 
+// UI Components
+import { 
+  Sheet, Box, Typography, List, ListItem, 
+  ListItemButton, Avatar, Divider, IconButton, GlobalStyles 
+} from '@mui/joy';
+
+import Image from 'next/image';
+
+// Icons
+import { 
+  GroupRounded, 
+  KeyboardArrowDown, 
+  Delete, 
+  AddCircleOutline 
+} from '@mui/icons-material';
+
+// Custom Components
 import ColorSchemeToggle from './ColorSchemeToggle';
-import { closeSidebar } from '../utils';
 import SignOut from './Signout';
 
+import { closeSidebar } from '../utils';
+
+// Constants
 const MAX_DOCUMENTS = 5;
 
-function Toggler({
-  defaultExpanded = false,
-  renderToggle,
-  children,
-}: {
-  defaultExpanded?: boolean;
-  children: React.ReactNode;
-  renderToggle: (params: {
-    open: boolean;
-    setOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  }) => React.ReactNode;
-}) {
-  const [open, setOpen] = React.useState(defaultExpanded);
-  return (
-    <React.Fragment>
-      {renderToggle({ open, setOpen })}
-      <Box
-        sx={[
-          {
-            display: 'grid',
-            transition: '0.2s ease',
-            '& > *': {
-              overflow: 'hidden',
-            },
-          },
-          open ? { gridTemplateRows: '1fr' } : { gridTemplateRows: '0fr' },
-        ]}
-      >
-        {children}
-      </Box>
-    </React.Fragment>
-  );
-}
-
-interface DocumentsObj {
-  [docId: string]: Document;
-}
-interface Document{
+// Types
+interface Document {
   name: string;
   content: any;
   timestamp: number;
 }
-interface Props{
+
+interface SidebarProps {
   editorInstance: any;
   isSaved: boolean;
   setIsSaved: React.Dispatch<React.SetStateAction<boolean>>;
-  documents: DocumentsObj;
-  documentId: string | null;
+  documentId: string;
+  documents: Record<string, Document>;
   selectedDocId: string | null;
-  setSelectedDocId: React.Dispatch<React.SetStateAction<string | null>>;
   setRoomId: React.Dispatch<React.SetStateAction<string>>;
-  setDocuments: React.Dispatch<React.SetStateAction<DocumentsObj>>;
+  setSelectedDocId: React.Dispatch<React.SetStateAction<string>>;
+  setDocuments: React.Dispatch<React.SetStateAction<Record<string, Document>>>;
 }
 
-export default function Sidebar({ editorInstance, isSaved, setIsSaved, documents, selectedDocId, setSelectedDocId, documentId, setDocuments, setRoomId }: Props): JSX.Element {
+export default function Sidebar({
+  editorInstance,
+  isSaved,
+  setIsSaved,
+  documentId,
+  documents,
+  selectedDocId,
+  setRoomId,
+  setSelectedDocId,
+  setDocuments
+}: SidebarProps) {
+  const { data: session } = useSession();
   const router = useRouter();
-  const client = useClient();
-  const { data: session, status } = useSession();
 
-  // Load documents from local storage
-  React.useEffect(() => {
-    console.log("in useEffect sidebar")
-    const storedDocuments = localStorage.getItem('documents');
-    console.log(storedDocuments)
+  // Memoized document list
+  const documentList = useMemo(() => 
+    Object.entries(documents || {}).map(([docId, doc]) => ({
+      id: docId,
+      ...doc
+    })), 
+    [documents]
+  );
 
-    if (storedDocuments) {
-      const parsedDocuments = JSON.parse(storedDocuments);
-    console.log(parsedDocuments)
-    console.log(Object.keys(parsedDocuments).length)
-
-      if(Object.keys(parsedDocuments).length === 0) {
-          setIsSaved(false);
-          const newDocument = initializeDocuments(); 
-          // setSelectedDocId(Object.keys(newDocument)[0]);
-          setDocuments(newDocument)
-      }else{
-          setDocuments(parsedDocuments);
-          const docId = window.location.hash.replace('#', ''); 
-          if(docId) {
-            setSelectedDocId(docId);
-          }
-      }
-    }
-
-  }, []);
-
-  // Initialize blank document
-  const initializeDocuments = () => {
-    const newDocId = crypto.randomUUID(); 
+  // Document Management Functions
+  const initializeDocument = useCallback(() => {
+    const newDocId = crypto.randomUUID();
     const randomInt = Math.floor(Math.random() * 10000);
-    const newDocName = `Doc${randomInt}`; 
-    return {[newDocId]: { name: newDocName, content: {"type": "doc", "content": []}, roomId: `liveblocks:examples:personal-doc-${newDocId}`, timestamp: Date.now() }};
-  }
-
-  //Set content of editor when document is selected
-  React.useEffect(() => {
-    console.log(documents)
-    localStorage.setItem('documents', JSON.stringify(documents));
-    // const docId = selectedDocId? selectedDocId : Object.keys(documents)[0]; 
-    // if (editorInstance && documents[docId] && selectedDocId !== "collabDoc") {
-    //   editorInstance.commands.setContent(documents[docId].content);
-    // }
-  }, [documents]);
-  
-  
+    return {
+      [newDocId]: {
+        name: `Doc${randomInt}`,
+        content: { type: "doc", content: [] },
+        roomId: `liveblocks:examples:personal-doc-${newDocId}`,
+        timestamp: Date.now()
+      }
+    };
+  },[]);
   
 
-  const handleAddDocument = () => {
-    
-    if (!isSaved) { 
+  const handleAddDocument = useCallback(() => {
+    if (!isSaved) {
       toast.info('Save your current document before adding a new one.', {
         position: "top-right",
         autoClose: 3000,
@@ -151,40 +100,49 @@ export default function Sidebar({ editorInstance, isSaved, setIsSaved, documents
         progress: undefined,
         theme: "light",
       });
-      return; 
+      return;
     }
-    if (documents && Object.keys(documents).length < MAX_DOCUMENTS) {
-      const newDocument = initializeDocuments();
-      setSelectedDocId(Object.keys(newDocument)[0]);
-      setDocuments({...documents, ...newDocument});
-      setIsSaved(false);
-    }
-  };
 
-  const handleDeleteDocument = (docId: string) => {
-    setDocuments((prevDocuments) => {
-      if (prevDocuments) {
-        const updatedDocuments = { ...prevDocuments };
-        delete updatedDocuments[docId];
-        if(Object.keys(updatedDocuments).length === 0) {
-          const newDocument = initializeDocuments();
-          return newDocument;
-        }else{
-          console.log(updatedDocuments)
-          return updatedDocuments;
-        }
+    if (documentList.length < MAX_DOCUMENTS) {
+      const newDocument = initializeDocument();
+      setSelectedDocId(Object.keys(newDocument)[0]);
+      setDocuments(prev => ({ ...prev, ...newDocument }));
+      setIsSaved(false);
+    } else {
+      toast.warning(`Maximum ${MAX_DOCUMENTS} documents allowed`);
+    }
+  }, [isSaved, documentList.length, initializeDocument, setSelectedDocId, setDocuments, setIsSaved]);
+
+  const handleDeleteDocument = useCallback((docId: string) => {
+    setDocuments(prevDocuments => {
+      const updatedDocuments = { ...prevDocuments };
+      delete updatedDocuments[docId];
+
+      if (Object.keys(updatedDocuments).length === 0) {
+        return initializeDocument();
       }
-      return prevDocuments;
+      
+      return updatedDocuments;
     });
     setSelectedDocId(Object.keys(documents)[0]);
-  };
-  
-  const handleDocClick = (docId: string) => {
-    setSelectedDocId(docId);
-  };
+  }, [documents, initializeDocument, setDocuments, setSelectedDocId]);
 
+  // const handleDocClick = (docId: string) => {
+  //   setSelectedDocId(docId);
+  //   const newRoomId = docId === "collabDoc"
+  //     ? "liveblocks:examples:collab-room-id"
+  //     : `liveblocks:examples:personal-doc-${docId}`;
+  //   setRoomId(newRoomId);
+  //   router.push(`/#${docId}`);
+  // }
+
+  const handleDocClick = useCallback((docId: string) => {
+    setSelectedDocId(docId);
+  }, [setSelectedDocId]);
+
+  
   return (
-    <Sheet
+    <Sheet 
       className="Sidebar"
       sx={{
         position: { xs: 'fixed', md: 'sticky' },
@@ -235,11 +193,9 @@ export default function Sidebar({ editorInstance, isSaved, setIsSaved, documents
         }}
         onClick={() => closeSidebar()}
       />
+      {/* Header Section */}
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-        {/* <IconButton variant="soft" color="primary" size="sm">
-          <BrightnessAutoRoundedIcon />
-        </IconButton> */}
-        <Image 
+      <Image 
             src="/logo.png" 
             alt="Logo" 
             width={50} 
@@ -249,143 +205,79 @@ export default function Sidebar({ editorInstance, isSaved, setIsSaved, documents
         <Typography level="title-lg">Collab AI</Typography>
         <ColorSchemeToggle sx={{ ml: 'auto' }} />
       </Box>
-      <Box
-        sx={{
-          minHeight: 0,
-          overflow: 'hidden auto',
-          flexGrow: 1,
-          mt: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          [`& .${listItemButtonClasses.root}`]: {
-            gap: 2,
-          },
-        }}
-      >
+
+      {/* Documents Section */}
+      <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
         <List
           size="sm"
           sx={{
-            gap: 2,
-            '--List-nestedInsetStart': '30px',
+            gap: 1,
             '--ListItem-radius': (theme) => theme.vars.radius.sm,
           }}
         >
-          <ListItem nested>
-            <Toggler
-              defaultExpanded
-              renderToggle={({ open, setOpen }) => (
-                <ListItemButton onClick={() => setOpen(!open)}>
-                  <GroupRoundedIcon />
-                  <ListItemContent>
-                    <Typography level="title-sm">Collab Documents</Typography>
-                  </ListItemContent>
-                  <KeyboardArrowDownIcon
-                    sx={[
-                      open ? { transform: 'rotate(180deg)' } : { transform: 'none' },
-                    ]}
-                  />
-                </ListItemButton>
-              )}
-            >
-              <List sx={{ gap: 0.5 }}>
-                
-              <ListItem key={1} sx={{ mt: 0.5 }}>
-                      <ListItemButton
-                        selected={selectedDocId === "collabDoc"} // Highlight selected document
-                        onClick={() => handleDocClick("collabDoc")} // Add onClick handler
-                        sx={{
-                          // Add background color to selected document
-                          ...(selectedDocId === "collabDoc" && {
-                            backgroundColor: 'neutral.softBg',
-                          }),
-                        }}
-                          >
-                        Collab Doc 1
-                      </ListItemButton>
-                    </ListItem>
+          {/* Collab Documents Section */}
+          <ListItemButton
+            selected={selectedDocId === "collabDoc"}
+            onClick={() => handleDocClick("collabDoc")}
+          >
+            <GroupRounded />
+            <Typography level="body-sm">Collab Document</Typography>
+          </ListItemButton>
 
-              </List>
-            </Toggler>
-          </ListItem>
+          {/* Personal Documents Section */}
           <ListItem nested>
-            <Toggler
-              defaultExpanded
-              renderToggle={({ open, setOpen }) => (
-                <ListItemButton onClick={() => setOpen(!open)}>
-                  <GroupRoundedIcon />
-                  <ListItemContent>
-                    <Typography level="title-sm">Personal Documents</Typography>
-                  </ListItemContent>
-                  <KeyboardArrowDownIcon
-                    sx={[
-                      open ? { transform: 'rotate(180deg)' } : { transform: 'none' },
-                    ]}
-                  />
+            <Typography level="body-sm" sx={{ mb: 1 }}>
+              Personal Documents
+            </Typography>
+            <List>
+              {documentList.map(doc => (
+                <ListItem key={doc.id}>
+                  <ListItemButton
+                    selected={selectedDocId === doc.id}
+                    onClick={() => handleDocClick(doc.id)}
+                  >
+                    <Typography level="body-sm">{doc.name}</Typography>
+                    <IconButton
+                      size="sm"
+                      color="danger"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteDocument(doc.id);
+                      }}
+                      sx={{ ml: 'auto' }}
+                    >
+                      <Delete />
+                    </IconButton>
+                  </ListItemButton>
+                </ListItem>
+              ))}
+
+              {documentList.length < MAX_DOCUMENTS && (
+                <ListItemButton onClick={handleAddDocument}>
+                  <AddCircleOutline />
+                  <Typography level="body-sm">Add Document</Typography>
                 </ListItemButton>
               )}
-            >
-              <List sx={{ gap: 0.5 }}>
-                
-                {
-                documents && Object.keys(documents).length > 0 &&
-                  Object.keys(documents).map((docId: string, index) => {
-                    console.log("Dcuments....")
-                    console.log(documents)
-                    console.log(docId)
-                    console.log( selectedDocId === docId)
-                    return(
-                    <ListItem key={docId} sx={{ mt: 0.5 }}>
-                      <ListItemButton
-                        selected={selectedDocId === docId} // Highlight selected document
-                        onClick={() => handleDocClick(docId)} // Add onClick handler
-                        sx={{
-                          // Add background color to selected document
-                          ...(selectedDocId === docId && {
-                            backgroundColor: 'neutral.softBg',
-                          }),
-                        }}
-                          >
-                        {documents[docId].name}
-                        <IconButton
-                          size="sm"
-                          variant="plain"
-                          color="danger"
-                          onClick={(e) => {
-                            e.stopPropagation(); // Prevent click event from propagating to parent
-                            handleDeleteDocument(docId);
-                          }}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </ListItemButton>
-                    </ListItem>
-                  )})
-                }
-                
-                {documents && Object.keys(documents).length > 0 && Object.keys(documents).length < MAX_DOCUMENTS && (
-                  <ListItem sx={{ mt: 0.5 }}>
-                    <ListItemButton onClick={handleAddDocument}>
-                      <AddCircleOutlineIcon />
-                      <Typography level="body-sm">Add Document</Typography>
-                    </ListItemButton>
-                  </ListItem>
-                )}
-              </List>
-            </Toggler>
+            </List>
           </ListItem>
         </List>
       </Box>
+
+      {/* User Profile Section */}
       <Divider />
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-        <Avatar
+        <Avatar 
           variant="outlined"
           size="sm"
-          src= {`/${session?.user.accessToken.name.split(" ").slice(0, 1)[0]}.jpeg`}
-          //{}
+          src={`/${session?.user.accessToken.name.split(" ")[0]}.jpeg`}
         />
         <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography level="title-sm">{session?.user.accessToken.name}</Typography>
-          <Typography level="body-xs">{session?.user.accessToken.email}</Typography>
+          <Typography level="title-sm">
+            {session?.user.accessToken.name}
+          </Typography>
+          <Typography level="body-xs">
+            {session?.user.accessToken.email}
+          </Typography>
         </Box>
         <SignOut />
       </Box>

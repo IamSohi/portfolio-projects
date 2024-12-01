@@ -1,23 +1,43 @@
+//Dasboard.tsx is the main component that renders the entire application. It contains the Sidebar, Header, CollaborativeEditor, and Suggestions components. The Dashboard component is responsible for managing the state of the application, such as the editor instance, suggestions, and documents. It also handles saving the document and displaying toast notifications.
+'use client';
 
-'use client'
-import * as React from 'react';
-import { useRef, useEffect, useState } from 'react';
-import { CssVarsProvider } from '@mui/joy/styles';
-import CssBaseline from '@mui/joy/CssBaseline';
-import Box from '@mui/joy/Box';
-import Sidebar from '@/app/components/Sidebar';
-import { Room } from "@/app/Room";
-import { CollaborativeEditor } from "@/app/components/CollaborativeEditor";
-import Header from "@/app/components/Header";
-import Suggestions from './Suggestions';
-import Button from '@mui/joy/Button';
-import { LiveObject } from '@liveblocks/client'; // Liveblocks integration
-import { ToastContainer, toast } from 'react-toastify'; // Import toast
-import 'react-toastify/dist/ReactToastify.css';
-import { useClient } from "@liveblocks/react/suspense";
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ClientSideSuspense } from "@liveblocks/react";
-import { Loading } from "@/app/components/Loading";
+import { useClient } from "@liveblocks/react/suspense";
+import { LiveObject } from '@liveblocks/client';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+// Components
+import { Box, Button, CssVarsProvider, CssBaseline } from '@mui/joy';
+import { Room } from "@/app/Room";
+import Sidebar from '@/app/components/Sidebar';
+import Header from "@/app/components/Header";
+import { CollaborativeEditor } from "@/app/components/CollaborativeEditor";
+import Suggestions from './Suggestions';
+import {ErrorBoundary} from '@/app/components/ErrorBoundary';
+
+// Types
+interface Document {
+  name: string;
+  content: any;
+  timestamp: number;
+}
+
+interface DocumentsState {
+  [key: string]: Document;
+}
+interface Suggestion {
+  type: 'grammar' | 'style' | 'word-choice';
+  message: string;
+}
+
+
+// interface SuggestionData {
+//   text: string;
+//   correctedText: string;
+//   suggestions: string[];
+// }
 
 type SuggestionDataType = {
   text: string;
@@ -25,85 +45,106 @@ type SuggestionDataType = {
   suggestions: string[];
 };
 
-type SuggestionsType = {
-  suggestions: string[];
-};
-interface DocumentsObj {
-  [docId: string]: Document;
-}
-interface Document{
-  name: string;
-  content: any;
-  timestamp: number;
-}
+export default function Dashboard({ documentId }: { documentId: string }) {
+  // State Management
+  const [editorInstance, setEditorInstance] = useState(null);
+  const [isSaved, setIsSaved] = useState(true);
+  const [documents, setDocuments] = useState<DocumentsState>({});
+  const [selectedDocId, setSelectedDocId] = useState<string>("collabDoc");
+  const [roomId, setRoomId] = useState<string>("liveblocks:examples:collab-room-id");
 
-export default function Dashboard({documentId}:{documentId:string}) {
-    const [editorInstance, setEditorInstance] = useState(null);
-    const [suggestionsLiveObject] = useState(new LiveObject<SuggestionDataType>({ text: '', correctedText: '', suggestions: [] }));
-    const [isSaved, setIsSaved] = useState(false); 
-    const [documents, setDocuments] = React.useState<DocumentsObj>({});
-    const [roomId, setRoomId] = React.useState<string>("liveblocks:examples:collab-room-id");
-    const client = useClient();
-    const [selectedDocId, setSelectedDocId] = React.useState<string | null>("collabDoc");
-    const router = useRouter();
+  // Refs & Hooks
+  const client = useClient();
+  const router = useRouter();
+  const suggestionsLiveObject = useMemo(() => 
+    new LiveObject<SuggestionDataType>({ 
+      text: '', 
+      correctedText: '', 
+      suggestions: [],
+    }), 
+    []
+  );
 
+  // Effects
+  useEffect(() => {
+    loadDocumentsFromStorage();
+  }, []);
 
-    React.useEffect(() => {
-      if (selectedDocId) {
-        if(selectedDocId === "collabDoc") {
-          setRoomId("liveblocks:examples:collab-room-id")
-        }else{
-          const newRoomId = `liveblocks:examples:personal-doc-${selectedDocId}`;
-          setRoomId(newRoomId)
-        }
-        router.push(`/#${selectedDocId}`);
-      }
-    }, [selectedDocId, router]);
+  useEffect(() => {
+    if (selectedDocId) {
+      updateRoomId();
+      updateUrlHash();
+    }
+  }, [selectedDocId]);
 
+  useEffect(() => {
+    console.log(documents)
+    localStorage.setItem('documents', JSON.stringify(documents));
+  }, [documents]);
 
-    const setEditorRef = (instance: any) => {
-        if (instance) {
-            setEditorInstance(instance);
-        }
-    };
-      
-    const handleSave = () => {
-      try{
-      if (editorInstance) {
-        const content = (editorInstance as any).getJSON();
-        const hasContent = content.content.some((block: any) => block.content.some((text: any) => text.text.trim() !== ""));
-        if (hasContent) {
-          const docId = window.location.hash.replace('#', ''); 
-          if (docId) {
-          // Update only the content and timestamp
-          setDocuments({ ...documents, [docId]: { ...documents[docId], content, timestamp: Date.now() }});
-            setIsSaved(true);
-          toast.success('Document saved!', {
-            position: "top-right",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "light",
-          });
-        }
+  // Document Management Functions
+  const loadDocumentsFromStorage = () => {
+    try {
+      const storedDocuments = localStorage.getItem('documents');
+      if (storedDocuments) {
+        const parsedDocuments = JSON.parse(storedDocuments);
+        if (Object.keys(parsedDocuments).length === 0) {
+          initializeNewDocument();
         } else {
-          toast.info('Cannot save an empty document.', {
-            position: "top-right",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "light",
-            });
+          setDocuments(parsedDocuments);
+          const docId = window.location.hash.replace('#', '');
+          if (docId) setSelectedDocId(docId);
         }
-      }}
-      catch(e){
-        toast.info('Cannot save an empty document.', {
+      }
+    } catch (error) {
+      console.error('Error loading documents:', error);
+      toast.error('Failed to load documents');
+    }
+  };
+
+  const initializeNewDocument = () => {
+    const newDocId = crypto.randomUUID();
+    const randomInt = Math.floor(Math.random() * 10000);
+    const newDocument = {
+      [newDocId]: {
+        name: `Doc${randomInt}`,
+        content: { type: "doc", content: [] },
+        roomId: `liveblocks:examples:personal-doc-${newDocId}`,
+        timestamp: Date.now()
+      }
+    };
+    setDocuments(newDocument);
+    setIsSaved(false);
+  };
+
+  const updateRoomId = () => {
+    const newRoomId = selectedDocId === "collabDoc"
+      ? "liveblocks:examples:collab-room-id"
+      : `liveblocks:examples:personal-doc-${selectedDocId}`;
+    setRoomId(newRoomId);
+  };
+
+  const updateUrlHash = () => {
+    router.push(`/#${selectedDocId}`);
+  };
+
+  // Editor Functions
+  const handleEditorRef = (instance: any) => {
+    if (instance) setEditorInstance(instance);
+  };
+
+  const handleSave = async () => {
+    if (!editorInstance) return;
+
+    try {
+      const content = (editorInstance as any).getJSON();
+      console.log(content);
+
+      const hasContent = content.content.some((block: any) => block.content.some((text: any) => text.text.trim() !== ""));
+
+
+      if (!hasContent) {
+        toast.info('Cannot save an empty document.',{
           position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
@@ -113,67 +154,108 @@ export default function Dashboard({documentId}:{documentId:string}) {
           progress: undefined,
           theme: "light",
           });
+        return;
       }
-    };
-    return(
-                <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-       <CssVarsProvider disableTransitionOnChange>
-         <CssBaseline />
-         <Sidebar editorInstance={editorInstance} isSaved={isSaved} setIsSaved={setIsSaved} documentId ={documentId} setRoomId={setRoomId}
-         documents={documents}
-         selectedDocId={selectedDocId}
-         setSelectedDocId={setSelectedDocId}
-         setDocuments={setDocuments}/> 
-        <Header/>
+
+      const docId = window.location.hash.replace('#', '');
+      if (docId) {
+        setDocuments(prev => ({
+          ...prev,
+          [docId]: {
+            ...prev[docId],
+            content,
+            timestamp: Date.now()
+          }
+        }));
+        setIsSaved(true);
+        toast.success('Document saved!',{
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        });
+      }
+    } catch (error) {
+      console.error('Error saving document:', error);
+      toast.error('Failed to save document. Cannot save an empty document',{
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+        });
+    }
+  };
+
+  return (
+    // <ErrorBoundary>
+      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+        <CssVarsProvider disableTransitionOnChange>
+          <CssBaseline />
+          <Sidebar
+            editorInstance={editorInstance}
+            isSaved={isSaved}
+            setIsSaved={setIsSaved}
+            documentId={documentId}
+            setRoomId={setRoomId}
+            documents={documents}
+            selectedDocId={selectedDocId}
+            setSelectedDocId={setSelectedDocId}
+            setDocuments={setDocuments}
+          />
+          <Header />
         </CssVarsProvider>
+
         <Box
-        sx={{
-          pt: { xs: 'calc(12px + var(--Header-height))', md: 3 },
-          pb: { xs: 2, sm: 2, md: 3 },
-          flex: 1, 
-          display: 'flex',
-          flexDirection: 'column',
-          minWidth: 0,
-          height: '100dvh',
-          gap: 1,
-          overflow: 'auto',
-          padding: 2,
-        }}
-      >
+          key={selectedDocId}
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: 0,
+            height: '100dvh',
+            gap: 1,
+            overflow: 'auto',
+            padding: 2,
+            pt: { xs: 'calc(12px + var(--Header-height))', md: 3 },
+            pb: { xs: 2, sm: 2, md: 3 }
+          }}
+        >
 
-      <Room key={roomId} roomId={roomId}>
-      {/* <ClientSideSuspense fallback={<Loading />}> */}
-
-                      <CollaborativeEditor editorInstance={setEditorRef}/>
-       {/* </ClientSideSuspense> */}
-                   <Box
+          <Room key={selectedDocId} selectedDocId={selectedDocId} roomId={roomId}>
+            <CollaborativeEditor editorInstance={handleEditorRef} />
+            <Box sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column' },
+              flex: 1,
+            }}>
+              {/* <Suggestions
+                editor={editorInstance}
+                liveObject={suggestionsLiveObject}
+              /> */}
+              <Button
+                size="lg"
+                key="lg"
+                onClick={handleSave}
                 sx={{
-                    display: 'flex',
-                    flexDirection: { xs: 'column'},
-                    flex: 1, 
+                  width: '100%',
+                  mt: 2
                 }}
-                >
-                 <Suggestions editor={editorInstance}
-                               liveObject={suggestionsLiveObject}
-                />
-                <Button key='lg' size='lg'
-              sx={{
-                flex: { xs: 'none' },
-                marginLeft: { xs: 0 },
-                marginTop: { xs: 2},
-                width: { xs: '100%' }
-              }}
-              onClick={handleSave} // Attach the save handler
-            >
-             Save
-           </Button>     
-           </Box>   
-           </Room>    
-
-
+              >
+                Save
+              </Button>
+            </Box>
+          </Room>
+        </Box>
+        <ToastContainer />
       </Box>
-      <ToastContainer />
-
-      </Box>
-    )
-  }
+    // </ErrorBoundary>
+  );
+}

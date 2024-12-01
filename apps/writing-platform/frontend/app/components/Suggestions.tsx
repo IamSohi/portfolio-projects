@@ -1,19 +1,16 @@
+// Suggestions.tsx is a component that displays suggestions for improving the text in the editor. It listens for updates to the editor content and fetches suggestions from an API based on the current sentence. The component displays the original text, corrected version, and suggestions for grammar, style, and word choice. It also provides a button to apply the correction to the editor content.
 'use client';
 
-import { useState, useEffect,useRef, useCallback } from 'react';
-import { debounce, first } from 'lodash'; // Install lodash for debouncing
-import { LiveObject } from '@liveblocks/client'; // Liveblocks integration
-import styles from "./Suggestions.module.css";
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRoom } from "@liveblocks/react";
-// import { useSession } from 'next-auth/react'; // For protected routes
-import { useSession } from 'next-auth/react'; // For protected routes
+import { useSession } from 'next-auth/react';
+import { LiveObject } from '@liveblocks/client';
 import { Box, Card, Typography, Button, Alert } from '@mui/joy';
 
+// Types
 interface Suggestion {
   type: 'grammar' | 'style' | 'word-choice';
   message: string;
-  // start: number; // Character position where the suggestion applies
-  // end: number; // Character position where the suggestion ends
 }
 
 interface CorrectionData {
@@ -23,371 +20,279 @@ interface CorrectionData {
 }
 
 interface Props {
-  editor: any; // Your Tiptap editor instance
-  liveObject: LiveObject<any>; // Liveblocks object for real-time syncing
+  editor: any;
+  liveObject: LiveObject<any>;
 }
 
-const getSuggestionColor = (type: string): { color: string; bg: string } => {
-  switch (type) {
-    case 'word-choice':
-      return { color: 'primary', bg: 'bg-blue-50' };
-    case 'style':
-      return { color: 'warning', bg: 'bg-amber-50' };
-    case 'grammar':
-      return { color: 'danger', bg: 'bg-red-50' };
-    default:
-      return { color: 'neutral', bg: 'bg-gray-50' };
-  }
+interface ColorScheme {
+  color: 'primary' | 'warning' | 'danger' | 'neutral';
+  bg: string;
+}
+
+// Constants
+const DEBOUNCE_DELAY = 1000;
+const API_ENDPOINT = 'http://127.0.0.1:3000/suggestions';
+
+// Utility functions
+const getSuggestionColor = (type: string): ColorScheme => {
+  const colorMap: Record<string, ColorScheme> = {
+    'word-choice': { color: 'primary', bg: 'bg-blue-50' },
+    'style': { color: 'warning', bg: 'bg-amber-50' },
+    'grammar': { color: 'danger', bg: 'bg-red-50' },
+    'default': { color: 'neutral', bg: 'bg-gray-50' }
+  };
+
+  return colorMap[type] || colorMap.default;
 };
 
+const getCurrentSentence = (text: string, cursorPos: number): string => {
+  const beforeCursor = text.slice(0, cursorPos);
+  const afterCursor = text.slice(cursorPos);
+  const start = beforeCursor.lastIndexOf('.') + 1 || 0;
+  const end = afterCursor.indexOf('.') + cursorPos + 1 || text.length;
+  
+  return text.slice(start, end).trim();
+};
 
-
-export default function Suggestions({ editor, liveObject }: Props): JSX.Element {
-  // const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+export default function Suggestions({ editor, liveObject }: Props) {
+  // State
+  const [data, setData] = useState<CorrectionData>();
   const [text, setText] = useState<string>('');
-  const [data, setData] = useState<CorrectionData>()
-  const room = useRoom();
-  const [isFirstRender, setIsFirstRender] = useState(true);
 
-  // const { data: session, status } = useSession();
-  // const accessToken = session?.user.accessToken  // Or await getAccessToken()
-  const unsubscribeRef = useRef<() => void>(); // Declare unsubscribeRef here
-  const { data: session, status } = useSession();
-  const accessToken = session?.user.accessToken  // Or await getAccessToken()
-  console.log("Session .....")
-  console.log(session)
-  useEffect(() => {
+  // Hooks
+  const room = useRoom();
+  const { data: session } = useSession();
+  const accessToken = session?.user.accessToken;
+
+  // Memoized room storage subscription
+  const initializeStorage = useCallback(async () => {
     if (!room) return;
 
-  const initializeStorage = async () => {
     const { root } = await room.getStorage();
     const suggestionsLiveObject = root.get("suggestionData");
 
-    // Listen for updates on the "suggestions" LiveObject
-    const unsubscribe = room.subscribe(
-      suggestionsLiveObject, // Subscribe directly to the LiveObject
-      () => {
-        console.log("object updated");
-        const updatedSuggestions =
-          suggestionsLiveObject.toImmutable() || {};
-        setData(updatedSuggestions);
-      },
-    );
+    return room.subscribe(suggestionsLiveObject, () => {
+      const updatedSuggestions = suggestionsLiveObject.toImmutable();
+      setData(updatedSuggestions);
+    });
+  }, [room]);
 
-    return unsubscribe;
-  };
+  // API call with error handling
+  const fetchSuggestions = useCallback(async (sentence: string) => {
+    if (!sentence || !accessToken) return;
 
-  initializeStorage().then((unsubscribe) => {
-    unsubscribeRef.current = unsubscribe;
+    try {
+      const response = await fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `${accessToken.accessToken}`
+        },
+        body: JSON.stringify({ text: sentence })
+      });
 
-    return () => {
-      unsubscribeRef.current?.();
-    };
-  });
-
-  }, [room, editor]);
-
-  useEffect(() => {
-    if (isFirstRender) {
-      setIsFirstRender(false);
-    }
-  }, [text]);
-
-
-  // **Function to find the current sentence based on the cursor position**
-  const getCurrentSentence = (fullText: string, cursorPos: number): string => {
-    const beforeCursor = fullText.slice(0, cursorPos);
-    const afterCursor = fullText.slice(cursorPos);
-
-    const start = beforeCursor.lastIndexOf('.') + 1 || 0; // Start of the sentence
-    const end = afterCursor.indexOf('.') + cursorPos + 1 || fullText.length; // End of the sentence
-
-    return fullText.slice(start, end).trim();
-  };
-
-  // **API Call with Debounced Execution**
-  const fetchSuggestions = useCallback(
-    debounce(async (sentence: string) => {
-      if (!sentence) return; // Avoid API call for empty input
-
-      try {
-        console.log("hitting suggestions api");
-        console.log(sentence)
-        console.log(accessToken); 
-
-        const res = await fetch('http://127.0.0.1:3000/suggestions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json',Authorization: `${accessToken.accessToken}` },
-          body: JSON.stringify({ text: sentence }),
-        });
-        const data = await res.json() || {
-          text: sentence,
-          correctedText: "The quick brown fox jumped over the lazy dog.",
-          suggestions:[
-          {
-            "type": "grammar",
-            "message": "Consider using 'were' instead of 'was'."
-          },
-          {
-            "type": "word-choice",
-            "message": "Replace 'very good' with 'excellent'."
-          }
-        ]};
-        
-        console.log("data........", data)
-
-        const parsedData = data.suggestionData;
-        console.log("data........", data)
-        if(parsedData.text === undefined){
-          parsedData.text = sentence;
-        }
-        console.log("parsedData........", parsedData)
-
-        const { root } = await room.getStorage();
-        const suggestionsLiveObject = root.get("suggestionData");
-        
-        // Update LiveObject with new suggestions
-        // suggestionsLiveObject?.set("suggestionData", data as CorrectionData);
-        // suggestionsLiveObject?.set("suggestionData", data as CorrectionData);
-        suggestionsLiveObject?.set("text", parsedData.text);
-        suggestionsLiveObject?.set("correctedText", parsedData.correctedText);
-        suggestionsLiveObject?.set("suggestions", parsedData.suggestions as Suggestion[]);
-  
-        // setSuggestions(parsedData as Suggestion[]); // Update local state
-        setData(parsedData as CorrectionData); // Update local state
-      } catch (error) {
-        console.error('Error fetching suggestions:', error);
+      if (!response.ok) {
+        throw new Error('Failed to fetch suggestions');
       }
-    }, 1000), // Delay of 500ms
-    [liveObject]
-  );
 
-  // **Editor Listener for Text Updates**
+      const result = await response.json();
+      const parsedData = result.suggestionData || {
+        text: sentence,
+        correctedText: sentence,
+        suggestions: []
+      };
+
+      const { root } = await room.getStorage();
+      const suggestionsLiveObject = root.get("suggestionData");
+      
+      if (suggestionsLiveObject) {
+        suggestionsLiveObject.set("text", parsedData.text);
+        suggestionsLiveObject.set("correctedText", parsedData.correctedText);
+        suggestionsLiveObject.set("suggestions", parsedData.suggestions);
+      }
+
+      setData(parsedData);
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+      // You might want to show a toast or error message to the user here
+    }
+  }, [accessToken, room]);
+
+  // Editor update handler
+  const handleEditorUpdate = useCallback(() => {
+    if (!editor) return;
+
+    const userInfo = room.getSelf();
+    if (userInfo?.presence.role !== "admin") return;
+
+    const currentText = editor.getText();
+    const cursorPos = editor.state.selection.head;
+    const currentSentence = getCurrentSentence(currentText, cursorPos);
+
+    setText(currentSentence);
+    fetchSuggestions(currentSentence);
+  }, [editor, room, fetchSuggestions]);
+
+  // Apply correction to editor
+  const handleCorrection = useCallback(() => {
+    if (!editor || !data) return;
+
+    try {
+      const content = editor.getHTML();
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = content;
+
+      const textNodes = Array.from(tempDiv.querySelectorAll('*'))
+        .filter(node => node.childNodes.length === 1 && node.firstChild?.nodeType === Node.TEXT_NODE)
+        .map(node => node.firstChild as Text);
+
+      textNodes.forEach(node => {
+        if (node.textContent?.includes(data.text)) {
+          node.textContent = node.textContent.replace(data.text, data.correctedText);
+        }
+      });
+
+      editor.commands.setContent(tempDiv.innerHTML);
+    } catch (error) {
+      console.error('Error applying correction:', error);
+      // You might want to show a toast or error message to the user here
+    }
+  }, [editor, data]);
+
+  // Effect for room storage initialization
+  useEffect(() => {
+    const unsubscribe = initializeStorage();
+    return () => {
+      unsubscribe.then(unsub => unsub?.());
+    };
+  }, [initializeStorage]);
+
+  // Effect for editor updates
   useEffect(() => {
     if (!editor) return;
 
-    const updateListener = (arg:any) => {
-      const userInfo = room.getSelf();
-
-      const currentText = editor.getText();
-      const cursorPos = editor.state.selection.head; // Current cursor position
-      console.log("currentText")
-      console.log(currentText)
-      console.log("cursorPos")
-      console.log(editor.state.selection)
-      const currentSentence = getCurrentSentence(currentText, cursorPos);
-      console.log("currentSentence")
-      console.log(currentSentence)
-      setText(currentSentence); // Update full text in state
-      if(userInfo?.presence.role !== "admin"){
-        console.log("I am not admin")
-        return;
-      }
-      console.log("I am admin")  
-
-      fetchSuggestions(currentSentence); // Fetch suggestions for the current sentence
-    };
-    editor.on('update', updateListener);
+    const debouncedUpdate = debounce(handleEditorUpdate, DEBOUNCE_DELAY);
+    editor.on('update', debouncedUpdate);
 
     return () => {
-      editor.off('update', updateListener);
+      editor.off('update', debouncedUpdate);
     };
-  }, [editor, fetchSuggestions]);
+  }, [editor, handleEditorUpdate]);
 
-  // **Subscribe to Liveblocks for Real-Time Suggestions**
-  // useEffect(() => {
-  //   const unsubscribe = (liveObject as any).subscribe('suggestions', (updatedSuggestions: Suggestion[]) => {
-  //     setSuggestions(updatedSuggestions || []); // Sync suggestions with other collaborators
-  //   });
-
-  //   return () => {
-  //     unsubscribe();
-  //   };
-  // }, [liveObject]);
-
-  // **Color-Coded Rendering of Suggestions**
-  // const renderHighlightedText = () => {
-  //   let highlightedText = text;
-  //   let offset = 0; // Track the added length to adjust indices
-  
-  //   suggestions.forEach(({ type, start, end }) => {
-  //     const suggestionClass = `highlight-${type}`;
-  //     const before = highlightedText.slice(0, start + offset);
-  //     const highlighted = `<span class="${styles[suggestionClass]}">${highlightedText.slice(start + offset, end + offset)}</span>`;
-  //     const after = highlightedText.slice(end + offset);  
-      
-  //     highlightedText = before + highlighted + after;
-
-  //     // Adjust the offset by the added length of the HTML tags
-  //     offset += highlighted.length - (end - start);
-  //   });
-  
-  //   return { __html: highlightedText };
-  // };  
-
-  const handleReplaceText = () => {
-    const data = {
-      text: "The quick brown fox jumped over the lazi dog",
-      correctedText: "The quick brown fox jumped over the lazy dog.",
-      // ... your suggestions data
+  // Custom debounce implementation
+  function debounce<T extends (...args: any[]) => any>(
+    func: T,
+    wait: number
+  ): (...args: Parameters<T>) => void {
+    let timeout: NodeJS.Timeout;
+    return (...args: Parameters<T>) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
     };
-  
-    // 1. Identify the sentence in the editor's content
-    const editorContent = editor.getContent(); // Get the current content
-    const sentenceStart = editorContent.indexOf(data.text); // Find the start index
-    const sentenceEnd = sentenceStart + data.text.length; // Calculate the end index
-  
-    // 2. Replace the sentence
-    if (sentenceStart !== -1) {
-      // If the sentence is found
-      const updatedContent =
-        editorContent.substring(0, sentenceStart) +
-        data.correctedText +
-        editorContent.substring(sentenceEnd);
-  
-      editor.update({ content: updatedContent });
-    }
-  };
+  }
 
-  // const handleCorrection = () => {
-  //   const data = {
-  //     text: "The quick brown fox jumped over the lazi dog",
-  //     correctedText: "The quick brown fox jumped over the lazy dog.",
-  //     // ... your suggestions data
-  //   };
-  //   if (!editor) return;
-
-  //   // Find the incorrect text in the editor
-  //   const content = editor.getHTML();
-  //   const wrongText = data.text;
-    
-  //   // Replace the text while preserving other content
-  //   const newContent = content.replace(wrongText, data.correctedText);
-  //   editor.commands.setContent(newContent);
-  // };
-
-    const handleCorrection = () => {
-      if (!editor) return;
-  
-      const content = editor.getHTML();
-      const wrongText = data?.text || "";
-      console.log("wrongText.....")
-      console.log(wrongText)
-      // Create a temporary div to parse HTML content
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = content;
-      
-      // Find and replace the text while preserving HTML structure
-      const textNodes = [];
-      const walk = document.createTreeWalker(
-        tempDiv,
-        NodeFilter.SHOW_TEXT,
-        null
-      );
-  
-      console.log("walk....")
-      console.log(walk)
-      let node;
-      while (node = walk.nextNode()) {
-        textNodes.push(node);
-      }
-  
-      console.log("textNodes....")
-      console.log(textNodes)  
-      textNodes.forEach(node => {
-        console.log("node....")
-        console.log(node)
-        console.log(node.textContent)
-        console.log(node.textContent?.includes(wrongText))
-        if (node.textContent?.includes(wrongText)) {
-          console.log("inIF")
-          node.textContent = node.textContent.replace(wrongText, data?.correctedText || 
-            ''
-          );
-        }
-      });
-  
-      editor.commands.setContent(tempDiv.innerHTML);
-    };
-  
-
-  
   return (
     <div className="suggestions-container"
-    style={{
-      border: '1px solid #ccc',
-      borderRadius: '12px',
-      // flex: '8',
-      width: '100%',
-      // wordWrap: 'break-word', 
-      overflowWrap: 'break-word', 
-      overflow: 'hidden',
-    }}
-
+      style={{
+        border: '1px solid #ccc',
+        borderRadius: '12px',
+        width: '100%',
+        overflowWrap: 'break-word',
+        overflow: 'hidden',
+      }}
     >
-      {isFirstRender && <p>Start Typing to get suggestions</p>}
-<Card className="w-full p-4">
-      <Box className="space-y-4">
-        {/* Text Comparison Section */}
-        <Box className="space-y-2">
-          <Typography level="body-sm" className="text-gray-600">
-            Original Text:
-          </Typography>
-          <Box className="p-3 rounded-md bg-red-50 border border-red-200">
-            <Typography>{data?.text}</Typography>
-          </Box>
+      <Card className="w-full p-4">
+        <Box className="space-y-4">
+          {/* Original Text Section */}
+          <TextSection
+            label="Original Text:"
+            text={data?.text}
+            variant="error"
+          />
 
-          <Typography level="body-sm" className="text-gray-600">
-            Corrected Version:
-          </Typography>
-          <Button
-            variant="soft"
-            color="success"
+          {/* Corrected Text Section */}
+          <TextSection
+            label="Corrected Version:"
+            text={data?.correctedText}
+            variant="success"
             onClick={handleCorrection}
-            className="w-full justify-start p-3 text-left"
-          >
-            <Typography>{data?.correctedText}</Typography>
-          </Button>
-        </Box>
+            isButton
+          />
 
-        {/* Suggestions Section */}
-        <Box className="space-y-2">
-          <Typography level="body-sm" className="text-gray-600">
-            Suggestions:
-          </Typography>
-          {data?.suggestions?.map((suggestion, index) => {
-            const { color, bg } = getSuggestionColor(suggestion.type);
-            return (
-              <Alert
-                key={index}
-                color={color as any}
-                variant="soft"
-                className={`${bg} border`}
-              >
-                <Box>
-                  <Typography className="font-medium capitalize">
-                    {suggestion.type}:
-                  </Typography>
-                  <Typography level="body-sm">
-                    {suggestion.message}
-                  </Typography>
-                </Box>
-              </Alert>
-            );
-          })}
+          {/* Suggestions Section */}
+          <SuggestionsList suggestions={data?.suggestions} />
         </Box>
-      </Box>
-    </Card>
-      {/* <div className="suggestions-list">
-        {suggestions.map((suggestion, index) => (
-          <div
-            key={index}
-            className={`suggestion-item suggestion-${suggestion.type}`}
-          >
-            {suggestion.message}
-          </div>
-        ))}
-      </div> */}
+      </Card>
     </div>
+  );
+}
+
+// Sub-components
+interface TextSectionProps {
+  label: string;
+  text?: string;
+  variant: 'error' | 'success';
+  onClick?: () => void;
+  isButton?: boolean;
+}
+
+function TextSection({ label, text, variant, onClick, isButton }: TextSectionProps) {
+  return (
+    <Box className="space-y-2">
+      <Typography level="body-sm" className="text-gray-600">
+        {label}
+      </Typography>
+      
+      {isButton ? (
+        <Button
+          variant="soft"
+          color="success"
+          onClick={onClick}
+          className="w-full justify-start p-3 text-left"
+        >
+          <Typography>{text}</Typography>
+        </Button>
+      ) : (
+        <Box className={`p-3 rounded-md ${variant === 'error' ? 'bg-red-50 border border-red-200' : ''}`}>
+          <Typography>{text}</Typography>
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+interface SuggestionsListProps {
+  suggestions?: Suggestion[];
+}
+
+function SuggestionsList({ suggestions }: SuggestionsListProps) {
+  if (!suggestions?.length) return null;
+
+  return (
+    <Box className="space-y-2">
+      <Typography level="body-sm" className="text-gray-600">
+        Suggestions:
+      </Typography>
+      {suggestions.map((suggestion, index) => {
+        const { color, bg } = getSuggestionColor(suggestion.type);
+        return (
+          <Alert
+            key={index}
+            color={color}
+            variant="soft"
+            className={`${bg} border`}
+          >
+            <Box>
+              <Typography className="font-medium capitalize">
+                {suggestion.type}:
+              </Typography>
+              <Typography level="body-sm">
+                {suggestion.message}
+              </Typography>
+            </Box>
+          </Alert>
+        );
+      })}
+    </Box>
   );
 }

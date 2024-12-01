@@ -75,45 +75,45 @@ export async function POST(request: NextRequest) {
   // Get the current user's unique id from your database
   console.log("in post")
 
-  const session = await auth()
-console.log("session", session)
+//   const session = await auth()
+// console.log("session", session)
 
-  const accessToken = session?.user.accessToken  // Or await getAccessToken()
-    // const session = await auth()
-    // console.log("session", session)
+//   const accessToken = session?.user.accessToken  // Or await getAccessToken()
+//     // const session = await auth()
+//     // console.log("session", session)
  
-  if (!session?.user) return null
+//   if (!session?.user) return null
 
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+//   if (!session) {
+//     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+//   }
 
   // Get the current user's info from the session
-  const user = {
-    id: session.user.accessToken.email,
-    info: {
-      name: session.user.accessToken.name,
-      color: "#D583F0",
-      picture: session.user.accessToken.image,
-    },
-  };
-  console.log("user", user)
+  // const user = {
+  //   id: session.user.accessToken.email,
+  //   info: {
+  //     name: session.user.accessToken.name,
+  //     color: "#D583F0",
+  //     picture: session.user.accessToken.image,
+  //   },
+  // };
+  // console.log("user", user)
 
 
   
 
   // Create a session for the current user
   // userInfo is made available in Liveblocks presence hooks, e.g. useOthers
-  const liveblocksSession = liveblocks.prepareSession(`user-${session.user.accessToken.id}`, {
-    userInfo: user.info,
-    // myPresence: {
-    //   role: 'admin',
-    // },
-  });
-  // const userId = Math.floor(Math.random() * 10) % USER_INFO.length;
-  // const liveblocksSession = liveblocks.prepareSession(`user-${userId}`, {
-  //   userInfo: USER_INFO[userId],
+  // const liveblocksSession = liveblocks.prepareSession(`user-${session.user.accessToken.id}`, {
+  //   userInfo: user.info,
+  //   // myPresence: {
+  //   //   role: 'admin',
+  //   // },
   // });
+  const userId = Math.floor(Math.random() * 10) % USER_INFO.length;
+  const liveblocksSession = liveblocks.prepareSession(`user-${userId}`, {
+    userInfo: USER_INFO[userId],
+  });
 
   console.log("liveblocksSession..", liveblocksSession)
 

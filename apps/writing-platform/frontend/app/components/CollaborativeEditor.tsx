@@ -1,113 +1,156 @@
-"use client";
+// CollaborativeEditor.tsx is a component that displays a collaborative text editor with simple rich text, live cursors, and live avatars. It uses the Tiptap editor with the Collaboration and CollaborationCursor extensions to enable real-time collaboration. The component integrates with Liveblocks to provide real-time synchronization of the editor content and user cursors. The editor also includes a toolbar for formatting text and a character count to track the number of characters and words in the document. The component listens for updates to the editor content and sends the changes to the Liveblocks room for synchronization with other users.
+'use client';
 
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Collaboration from "@tiptap/extension-collaboration";
-import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
-import * as Y from "yjs";
-import { LiveblocksYjsProvider } from "@liveblocks/yjs";
-import { useRoom, useSelf } from "@liveblocks/react/suspense";
-import { useEffect, useState, useMemo } from "react";
-import { Toolbar } from "./Toolbar";
-import styles from "./CollaborativeEditor.module.css";
-import { Avatars } from "@/app/components/Avatars";
-import { useMyPresence, useOthers } from "@liveblocks/react";
-import { useSyncStatus } from "@liveblocks/react";
+import { useEffect, useState, useMemo } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import { useRoom, useSelf, useMyPresence, useOthers, useSyncStatus } from '@liveblocks/react';
+import { LiveblocksYjsProvider } from '@liveblocks/yjs';
+import * as Y from 'yjs';
 
-import CharacterCount from '@tiptap/extension-character-count'
-import Document from '@tiptap/extension-document'
-import Paragraph from '@tiptap/extension-paragraph'
-import Text from '@tiptap/extension-text'
+// TipTap Extensions
+import StarterKit from '@tiptap/starter-kit';
+import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import CharacterCount from '@tiptap/extension-character-count';
+import Document from '@tiptap/extension-document';
+import Paragraph from '@tiptap/extension-paragraph';
+import Text from '@tiptap/extension-text';
 
+// Components
+import { Toolbar } from './Toolbar';
+import { Avatars } from './Avatars';
 
+// Styles
+import styles from './CollaborativeEditor.module.css';
 
-interface Props {
+// Types
+interface EditorProps {
   editorInstance?: (instance: any) => void;
-
 }
-// Collaborative text editor with simple rich text, live cursors, and live avatars
-export function CollaborativeEditor({editorInstance}:Props) {
+
+const CHARACTER_LIMIT = 500;
+
+export function CollaborativeEditor({ editorInstance }: EditorProps) {
+  // Liveblocks Setup
   const room = useRoom();
-  const [doc, setDoc] = useState<Y.Doc>();
-  const [provider, setProvider] = useState<any>();
+  const [doc, setDoc] = useState<Y.Doc | null>(null);
+  const [provider, setProvider] = useState<LiveblocksYjsProvider | null>(null);
 
-  // Set up Liveblocks Yjs provider
+  // useEffect(() => {
+  //   const setupLiveblocks = () => {
+  //     const yDoc = new Y.Doc();
+  //     const yProvider = new LiveblocksYjsProvider(room, yDoc);
+      
+  //     setDoc(yDoc);
+  //     setProvider(yProvider);
+
+  //     return () => {
+  //       yDoc?.destroy();
+  //       yProvider?.destroy();
+  //     };
+  //   };
+
+  //   return setupLiveblocks();
+  // }, [room]);
+
   useEffect(() => {
-    console.log("room from collaborative editor")
+    // if (doc) doc.destroy();
+    // if (provider) provider.destroy();
 
-    console.log(room)
-    console.log("yDoc.........")
+    // Create new instances
     const yDoc = new Y.Doc();
-    console.log(yDoc)
-
     const yProvider = new LiveblocksYjsProvider(room, yDoc);
+    
     setDoc(yDoc);
     setProvider(yProvider);
-    return () => {
-      yDoc?.destroy();
-      yProvider?.destroy();
-    };
-    
-  }, [room]);
 
+
+      return () => {
+        // setDoc(null);
+        // setProvider(null);
+
+        yDoc.destroy();
+        yProvider.destroy();
+  
+      };
+  
+  }, [room.id]);
+
+  // useEffect(() => {
+  //   if (!room) return;
+
+  //   // Clean up previous provider
+  //   if (provider) {
+  //     provider.destroy();
+  //   }
+  //     const yDoc = new Y.Doc();
+
+  //   // Create new provider
+  //   const yProvider = new LiveblocksYjsProvider(room, yDoc);
+  //         setDoc(yDoc);
+
+  //   setProvider(yProvider);
+
+  //   // Initialize document content if provided
+  //   // if (documentContent) {
+  //   //   const type = doc.getXmlFragment('prosemirror');
+  //   //   if (type.length === 0) {
+  //   //     type.insert(0, [documentContent]);
+  //   //   }
+  //   // }
+
+  //   return () => {
+  //             yDoc?.destroy();
+
+  //     yProvider.destroy();
+  //     // Don't destroy the doc here as it might be needed for the next room
+  //   };
+  // }, [room]);
+
+
+  // if (!doc || !provider) return null;
   if (!doc || !provider) {
-    console.log("returning null")
-
-    return null;
+    return <div>Initializing editor...</div>;
   }
 
-  return <TiptapEditor doc={doc} provider={provider} editorInstance={editorInstance} />;
+  return <TiptapEditor key={room.id} doc={doc} provider={provider} editorInstance={editorInstance} />;
 }
 
-type EditorProps = {
+interface TiptapEditorProps {
   doc: Y.Doc;
   provider: any;
   editorInstance?: (instance: any) => void;
-};
+}
 
-function TiptapEditor({ doc, provider, editorInstance }: EditorProps) {
-  // Get user info from Liveblocks authentication endpoint
-  const userInfo = useSelf((me) => me.info);
-  const room = useRoom();
-  const self = useSelf((me) => me);
+function TiptapEditor({ doc, provider, editorInstance }: TiptapEditorProps) {
+  // Hooks
+  const userInfo = useSelf(me => me.info);
+  const self = useSelf(me => me);
   const [myPresence, updateMyPresence] = useMyPresence();
   const others = useOthers();
-  const limit = 500;
-const syncStatus = useSyncStatus();
-  console.log("provider.............");
-  console.log(provider)
-  console.log("doc")
-  console.log(JSON.stringify(doc))
-  console.log("self.............");
-  console.log(self)
-  console.log("myPresence.............");
-  console.log(myPresence)
-  console.log("others............");
-  const allPresenceObjects = others.map((other) => other.presence);
-  console.log(allPresenceObjects)
-
-  
-
+  // const syncStatus = useSyncStatus();
+  const room = useRoom();
+  // console.log(userInfo)
+  // console.log(self)
+  // Admin Status
   const isAdmin = useMemo(() => {
-    if (others.length === 0) {
-      return true;
-    }
-    return others.every((other) => self.connectionId < other.connectionId);
-  }, [self.connectionId, others]);
-      useEffect(() => {
-    // Update the user's role based on the isAdmin status
+    if (others.length === 0) return true;
+    return others.every(other => self && self.connectionId < other.connectionId);
+  }, [self, others]);
+
+  // Update user role based on admin status
+  useEffect(() => {
     if (isAdmin && myPresence.role !== "admin") {
       updateMyPresence({ role: "admin" });
     } else if (!isAdmin && myPresence.role === "admin") {
-      updateMyPresence({ role: "user" }); // Remove admin role if no longer admin
+      updateMyPresence({ role: "user" });
     }
-  }, [isAdmin, myPresence.role]); // Re-run if isAdmin or myPresence.role changes
+  }, [isAdmin, myPresence.role, updateMyPresence]);
 
-  // Set up editor with plugins, and place user info into Yjs awareness and cursors
+  // Editor Setup
   const editor = useEditor({
     editorProps: {
       attributes: {
-        // Add styles to editor element
         class: styles.editor,
       },
     },
@@ -117,103 +160,56 @@ const syncStatus = useSyncStatus();
       Paragraph,
       Text,
       CharacterCount.configure({
-        limit,
+        limit: CHARACTER_LIMIT,
       }),
       StarterKit.configure({
-        // The Collaboration extension comes with its own history handling
         history: false,
-        
       }),
-      // Register the document with Tiptap
       Collaboration.configure({
         document: doc,
       }),
-      // Attach provider and user info
       CollaborationCursor.configure({
         provider: provider,
-        user: userInfo,
+        user: userInfo || undefined,
       }),
-
     ],
-
-
-  });
-
-  // useEffect(() => {
-  //   if (editor) {
-  //     setTimeout(() => { 
-  //       editor.commands.setTextSelection({
-  //         from: editor.state.doc.content.size,
-
-  //         to: editor.state.doc.content.size,
-  //       });
-  //     }, 0); 
-
-  //     console.log("cursor position")
-  //     console.log(editor.state.doc.content.size)
-  //   }
-  // }, [editor]);
-
-  // useEffect(() => {
-  //   if (editor && !editor.isDestroyed) {
-  //     // Wait a short moment to ensure content is fully loaded
-  //     setTimeout(() => {
-  //       // Get the total document length
-  //       const documentLength = editor.state.doc.content.size;
-  
-
-  //       console.log("documentLength")
-  //       console.log(documentLength)
-  //       // Set the cursor at the end of the document
-  //       editor.commands.setTextSelection({
-  //         from: documentLength,
-  //         to: documentLength
-  //       });
-  
-  //       // Focus the editor (optional, but often desired)
-  //       editor.commands.focus();
-  //     }, 0);
-  //   }
-  // }, [editor]);
-  useEffect(() => {
-    if (editor) {
-      // Wait for a brief moment to ensure the editor is fully initialized
-      const timer = setTimeout(() => {
-        // Move cursor to the end of the document
-        editor.commands.focus('end');
-        editor.commands.selectTextblockEnd()
-        console.log("cursor position")
-        console.log(editor.state.selection)
-        console.log(editor.state.selection.head)
-        let {from, to} = editor.state.selection;
-		editor.commands.setTextSelection({from, to});
-    console.log(from,to)
-
-      }, 0);
-
-      return () => clearTimeout(timer);
-    }
-  }, [editor]);
-
-  
-
-  const percentage = editor
-  ? Math.round((100 / limit) * editor.storage.characterCount.characters())
-  : 0;
-
-  const isWarning = editor?.storage.characterCount.characters() === limit;
-
-
+  },[room.id, doc, provider]);
 
   useEffect(() => {
+    console.log("room...............")
+    console.log(room)
+    console.log(room.id)
+  } , []);
 
-    if (editorInstance){
-        editorInstance(editor);
+  // useEffect(() => {
+  //   return () => {
+  //     editor?.destroy();
+  //   };
+  // }, [editor]);
+
+  // Initial cursor position
+  // useEffect(() => {
+  //   if (!editor) return;
+
+  //   const timer = setTimeout(() => {
+  //     editor.commands.focus('end');
+  //     editor.commands.selectTextblockEnd();
+  //   }, 0);
+
+  //   return () => clearTimeout(timer);
+  // }, [editor]);
+
+  // Update parent component's editor reference
+  useEffect(() => {
+    if (editor && editorInstance) {
+      editorInstance(editor);
     }
+  }, [editor, editorInstance, doc, room]);
 
-
-}, [editor, editorInstance, doc, room]);
-
+  // Character count calculations
+  const characterCount = editor?.storage.characterCount.characters() ?? 0;
+  const percentage = Math.round((100 / CHARACTER_LIMIT) * characterCount);
+  const isAtLimit = characterCount === CHARACTER_LIMIT;
 
   return (
     <div className={styles.container}>
@@ -221,10 +217,33 @@ const syncStatus = useSyncStatus();
         <Toolbar editor={editor} />
         <Avatars />
       </div>
-      <EditorContent editor={editor} className={styles.editorContainer} />
-      <div className={`${styles['character-count']} ${isWarning ? styles['character-count--warning'] : ''}`}>
+
+      <EditorContent key={`editor-${room.id}`} editor={editor} className={styles.editorContainer} />
+
+      <div className={`${styles['character-count']} ${isAtLimit ? styles['character-count--warning'] : ''}`}>
+        <CharacterCounter
+          current={characterCount}
+          limit={CHARACTER_LIMIT}
+          percentage={percentage}
+          wordCount={editor?.storage.characterCount.words() ?? 0}
+        />
+      </div>
+    </div>
+  );
+}
+
+interface CharacterCounterProps {
+  current: number;
+  limit: number;
+  percentage: number;
+  wordCount: number;
+}
+
+function CharacterCounter({ current, limit, percentage, wordCount }: CharacterCounterProps) {
+  return (
+    <>
       <svg
-        className={isWarning ? styles['character-count__svg'] : ''}
+        className={current === limit ? styles['character-count__svg'] : ''}
         height="20"
         width="20"
         viewBox="0 0 20 20"
@@ -244,12 +263,10 @@ const syncStatus = useSyncStatus();
       </svg>
 
       <div>
-        {editor?.storage.characterCount.characters()} / {limit} characters
+        {current} / {limit} characters
         <br />
-        {editor?.storage.characterCount.words()} words
+        {wordCount} words
       </div>
-    </div>
-
-    </div>
+    </>
   );
 }
