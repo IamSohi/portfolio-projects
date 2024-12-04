@@ -3,7 +3,8 @@
 // import { useSession } from 'next-auth/react'; // For protected routes
 // import Dashboard from '@/app/components/Dashboard';
 
-export default function DocumentPage({ params }: { params: Promise<{ id: string }> }) {
+export default function DocumentPage() {
+  // export default function DocumentPage({ params }: { params: Promise<{ id: string }> }) {
   // const { data: session, status } = useSession();
   // const accessToken = session?.user.accessToken  // Or await getAccessToken()
 

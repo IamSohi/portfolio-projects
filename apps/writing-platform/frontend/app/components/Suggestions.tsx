@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRoom } from "@liveblocks/react";
 import { useSession } from 'next-auth/react';
-import { LiveObject } from '@liveblocks/client';
+// import { LiveObject } from '@liveblocks/client';
 import { Box, Card, Typography, Button, Alert } from '@mui/joy';
 
 import { Editor } from '@tiptap/core';
@@ -185,7 +185,7 @@ export default function Suggestions({ editor }: Props) {
   }, [editor, handleEditorUpdate]);
 
   // Custom debounce implementation
-  function debounce<T extends (...args: any[]) => any>(
+  function debounce<T extends (...args: unknown[]) => unknown>(
     func: T,
     wait: number
   ): (...args: Parameters<T>) => void {

@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 // import { useClient } from "@liveblocks/react/suspense";
-import { LiveObject } from '@liveblocks/client';
+// import { LiveObject } from '@liveblocks/client';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -29,6 +29,8 @@ interface Document {
 interface DocumentsState {
   [key: string]: Document;
 }
+
+
 // interface Suggestion {
 //   type: 'grammar' | 'style' | 'word-choice';
 //   message: string;
@@ -47,7 +49,8 @@ type SuggestionDataType = {
   suggestions: string[];
 };
 
-export default function Dashboard({ documentId }: { documentId: string }) {
+export default function Dashboard() {
+  // export default function Dashboard({ documentId }: { documentId: string }) {
   // State Management
   const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
   const [isSaved, setIsSaved] = useState(false);
@@ -58,14 +61,14 @@ export default function Dashboard({ documentId }: { documentId: string }) {
   // Refs & Hooks
   // const client = useClient();
   const router = useRouter();
-  const suggestionsLiveObject = useMemo(() => 
-    new LiveObject<SuggestionDataType>({ 
-      text: '', 
-      correctedText: '', 
-      suggestions: [],
-    }), 
-    []
-  );
+  // const suggestionsLiveObject = useMemo(() => 
+  //   new LiveObject<SuggestionDataType>({ 
+  //     text: '', 
+  //     correctedText: '', 
+  //     suggestions: [],
+  //   }), 
+  //   []
+  // );
 
   // Effects
   useEffect(() => {
