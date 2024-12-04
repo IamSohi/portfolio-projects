@@ -1,7 +1,7 @@
 //Dasboard.tsx is the main component that renders the entire application. It contains the Sidebar, Header, CollaborativeEditor, and Suggestions components. The Dashboard component is responsible for managing the state of the application, such as the editor instance, suggestions, and documents. It also handles saving the document and displaying toast notifications.
 'use client';
 
-import { useRef, useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useClient } from "@liveblocks/react/suspense";
 import { LiveObject } from '@liveblocks/client';
@@ -48,7 +48,7 @@ type SuggestionDataType = {
 export default function Dashboard({ documentId }: { documentId: string }) {
   // State Management
   const [editorInstance, setEditorInstance] = useState(null);
-  const [isSaved, setIsSaved] = useState(true);
+  const [isSaved, setIsSaved] = useState(false);
   const [documents, setDocuments] = useState<DocumentsState>({});
   const [selectedDocId, setSelectedDocId] = useState<string>("collabDoc");
   const [roomId, setRoomId] = useState<string>("liveblocks:examples:collab-room-id");
@@ -195,7 +195,7 @@ export default function Dashboard({ documentId }: { documentId: string }) {
   };
 
   return (
-    // <ErrorBoundary>
+    <ErrorBoundary>
       <Box sx={{ display: 'flex', minHeight: '100vh' }}>
         <CssVarsProvider disableTransitionOnChange>
           <CssBaseline />
@@ -229,17 +229,17 @@ export default function Dashboard({ documentId }: { documentId: string }) {
           }}
         >
 
-          <Room key={selectedDocId} selectedDocId={selectedDocId} roomId={roomId}>
+          <Room key={selectedDocId} roomId={roomId}>
             <CollaborativeEditor editorInstance={handleEditorRef} />
             <Box sx={{
               display: 'flex',
               flexDirection: { xs: 'column' },
               flex: 1,
             }}>
-              {/* <Suggestions
+              <Suggestions
                 editor={editorInstance}
                 liveObject={suggestionsLiveObject}
-              /> */}
+              />
               <Button
                 size="lg"
                 key="lg"
@@ -256,6 +256,6 @@ export default function Dashboard({ documentId }: { documentId: string }) {
         </Box>
         <ToastContainer />
       </Box>
-    // </ErrorBoundary>
+    </ErrorBoundary>
   );
 }

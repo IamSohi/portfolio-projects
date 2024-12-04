@@ -1,7 +1,6 @@
 'use client'
 import React from "react";
 import { signOut } from 'next-auth/react';
-import { PowerIcon } from '@heroicons/react/24/outline';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import IconButton from '@mui/joy/IconButton';
 

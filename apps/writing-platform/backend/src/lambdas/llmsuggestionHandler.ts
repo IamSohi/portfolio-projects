@@ -5,10 +5,13 @@ import { createResponse, logger } from '@packages-utils';
 import { AuthService } from '@services/authService';
 const authService = new AuthService();
 
-const llmService = new LLMService();
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
+    
+    // const llmService = await LLMService.create();
+    const llmService = new LLMService();
+    
     const { Authorization } = event.headers || {};
     if (!Authorization) {
         return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized - No token provided' }) };
@@ -34,7 +37,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
 
     const suggestions = await llmService.getSuggestions(text);
     console.log(suggestions)
-    return createResponse(200, { suggestionData: suggestions });
+    return createResponse(200, { suggestionData: {text,...suggestions} });
   } catch (error) {
     logger.error('Error getting suggestions', error);
     return createResponse(500, { message: 'Error getting suggestions' });

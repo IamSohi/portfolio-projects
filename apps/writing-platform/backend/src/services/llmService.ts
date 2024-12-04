@@ -1,6 +1,17 @@
 import { OpenAI } from 'openai';
 import { createResponse, logger } from '@packages-utils';
 import { z } from 'zod';
+import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+const secretsClient = new SecretsManagerClient({});
+
+async function getOpenAIKey(secretArn: string): Promise<string> {
+  const command = new GetSecretValueCommand({ SecretId: secretArn });
+  const response = await secretsClient.send(command);
+  if (response.SecretString) {
+    return JSON.parse(response.SecretString).OPENAI_API_KEY;
+  }
+  throw new Error("Unable to retrieve OpenAI API Key");
+}
 
 // Define types for the suggestion response
 interface Suggestion {
@@ -28,12 +39,23 @@ const SuggestionsArraySchema = z.array(SuggestionSchema);
 
 export class LLMService {
   private openai: OpenAI;
-
   constructor() {
     this.openai = new OpenAI({
         apiKey: process.env['OPENAI_API_KEY'], // This is the default and can be omitted
       });
   }
+
+  // constructor(apiKey: string) {
+  //   this.openai = new OpenAI({
+  //       apiKey: apiKey // This is the default and can be omitted
+  //     });
+  // }
+  // static async create(): Promise<LLMService> {
+  //   console.log(`OPEN_API_KEY_SECRET_ARN: ${process.env.SECRETS_ARN}`);
+  //   const apiKey = await getOpenAIKey(process.env.SECRETS_ARN!);
+  //   return new LLMService(apiKey);
+  // }
+
   private createStructuredPrompt(text: string): string {
     return `Analyze the following text and provide specific improvements in three categories:
 - Grammar (e.g., subject-verb agreement, punctuation, sentence structure)

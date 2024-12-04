@@ -1,8 +1,6 @@
 "use client"
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react'; // For protected routes
-import Suggestions from '../../components/Suggestions';
-import dynamic from 'next/dynamic'
 import Dashboard from '@/app/components/Dashboard';
 
 export default function DocumentPage({ params }: { params: Promise<{ id: string }> }) {

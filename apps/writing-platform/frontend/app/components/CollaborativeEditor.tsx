@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
-import { useRoom, useSelf, useMyPresence, useOthers, useSyncStatus } from '@liveblocks/react';
+import { useRoom, useSelf, useMyPresence, useOthers } from '@liveblocks/react';
 import { LiveblocksYjsProvider } from '@liveblocks/yjs';
 import * as Y from 'yjs';
 
@@ -36,22 +36,6 @@ export function CollaborativeEditor({ editorInstance }: EditorProps) {
   const [doc, setDoc] = useState<Y.Doc | null>(null);
   const [provider, setProvider] = useState<LiveblocksYjsProvider | null>(null);
 
-  // useEffect(() => {
-  //   const setupLiveblocks = () => {
-  //     const yDoc = new Y.Doc();
-  //     const yProvider = new LiveblocksYjsProvider(room, yDoc);
-      
-  //     setDoc(yDoc);
-  //     setProvider(yProvider);
-
-  //     return () => {
-  //       yDoc?.destroy();
-  //       yProvider?.destroy();
-  //     };
-  //   };
-
-  //   return setupLiveblocks();
-  // }, [room]);
 
   useEffect(() => {
     // if (doc) doc.destroy();
@@ -76,36 +60,6 @@ export function CollaborativeEditor({ editorInstance }: EditorProps) {
   
   }, [room.id]);
 
-  // useEffect(() => {
-  //   if (!room) return;
-
-  //   // Clean up previous provider
-  //   if (provider) {
-  //     provider.destroy();
-  //   }
-  //     const yDoc = new Y.Doc();
-
-  //   // Create new provider
-  //   const yProvider = new LiveblocksYjsProvider(room, yDoc);
-  //         setDoc(yDoc);
-
-  //   setProvider(yProvider);
-
-  //   // Initialize document content if provided
-  //   // if (documentContent) {
-  //   //   const type = doc.getXmlFragment('prosemirror');
-  //   //   if (type.length === 0) {
-  //   //     type.insert(0, [documentContent]);
-  //   //   }
-  //   // }
-
-  //   return () => {
-  //             yDoc?.destroy();
-
-  //     yProvider.destroy();
-  //     // Don't destroy the doc here as it might be needed for the next room
-  //   };
-  // }, [room]);
 
 
   // if (!doc || !provider) return null;
@@ -128,11 +82,7 @@ function TiptapEditor({ doc, provider, editorInstance }: TiptapEditorProps) {
   const self = useSelf(me => me);
   const [myPresence, updateMyPresence] = useMyPresence();
   const others = useOthers();
-  // const syncStatus = useSyncStatus();
   const room = useRoom();
-  // console.log(userInfo)
-  // console.log(self)
-  // Admin Status
   const isAdmin = useMemo(() => {
     if (others.length === 0) return true;
     return others.every(other => self && self.connectionId < other.connectionId);
@@ -175,11 +125,6 @@ function TiptapEditor({ doc, provider, editorInstance }: TiptapEditorProps) {
     ],
   },[room.id, doc, provider]);
 
-  useEffect(() => {
-    console.log("room...............")
-    console.log(room)
-    console.log(room.id)
-  } , []);
 
   // useEffect(() => {
   //   return () => {

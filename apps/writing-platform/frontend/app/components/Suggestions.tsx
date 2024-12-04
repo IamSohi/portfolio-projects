@@ -1,7 +1,7 @@
 // Suggestions.tsx is a component that displays suggestions for improving the text in the editor. It listens for updates to the editor content and fetches suggestions from an API based on the current sentence. The component displays the original text, corrected version, and suggestions for grammar, style, and word choice. It also provides a button to apply the correction to the editor content.
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRoom } from "@liveblocks/react";
 import { useSession } from 'next-auth/react';
 import { LiveObject } from '@liveblocks/client';
@@ -137,6 +137,7 @@ export default function Suggestions({ editor, liveObject }: Props) {
   const handleCorrection = useCallback(() => {
     if (!editor || !data) return;
 
+    console.log("IN")
     try {
       const content = editor.getHTML();
       const tempDiv = document.createElement('div');
@@ -151,6 +152,8 @@ export default function Suggestions({ editor, liveObject }: Props) {
           node.textContent = node.textContent.replace(data.text, data.correctedText);
         }
       });
+
+      console.log(data)
 
       editor.commands.setContent(tempDiv.innerHTML);
     } catch (error) {
