@@ -1,7 +1,7 @@
 //Dasboard.tsx is the main component that renders the entire application. It contains the Sidebar, Header, CollaborativeEditor, and Suggestions components. The Dashboard component is responsible for managing the state of the application, such as the editor instance, suggestions, and documents. It also handles saving the document and displaying toast notifications.
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 // import { useClient } from "@liveblocks/react/suspense";
 // import { LiveObject } from '@liveblocks/client';
@@ -43,11 +43,11 @@ interface DocumentsState {
 //   suggestions: string[];
 // }
 
-type SuggestionDataType = {
-  text: string;
-  correctedText: string;
-  suggestions: string[];
-};
+// type SuggestionDataType = {
+//   text: string;
+//   correctedText: string;
+//   suggestions: string[];
+// };
 
 export default function Dashboard() {
   // export default function Dashboard({ documentId }: { documentId: string }) {
