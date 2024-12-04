@@ -53,6 +53,7 @@
     "@mui/material": "npm:@mui/joy@latest"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.7",
     "@types/lodash": "^4.17.13",
     "@types/node": "^20",
     "@types/react": "^18",
