@@ -20,10 +20,14 @@ console.log("session", session)
 
   // const accessToken = session?.user.accessToken  // Or await getAccessToken()
  
-  if (!session?.user) return null
+  
 
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!session?.user) {
+    return NextResponse.json({ error: "No user found" }, { status: 401 });
+
   }
 
   // Get the current user's info from the session
