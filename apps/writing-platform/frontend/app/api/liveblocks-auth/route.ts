@@ -1,5 +1,5 @@
 import { Liveblocks } from "@liveblocks/node";
-import {  NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "../../../auth";
 
 /**
@@ -11,10 +11,10 @@ const liveblocks = new Liveblocks({
   secret: process.env.LIVEBLOCKS_SECRET_KEY!,
 });
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   // Get the current user's unique id from your database
   console.log("in post")
-
+console.log(request)
   const session = await auth()
 console.log("session", session)
 
