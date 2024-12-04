@@ -15,6 +15,7 @@ import CharacterCount from '@tiptap/extension-character-count';
 import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';
 import Text from '@tiptap/extension-text';
+import { Editor } from '@tiptap/core';
 
 // Components
 import { Toolbar } from './Toolbar';
@@ -25,7 +26,7 @@ import styles from './CollaborativeEditor.module.css';
 
 // Types
 interface EditorProps {
-  editorInstance?: (instance: any) => void;
+  editorInstance?: (instance: Editor) => void;
 }
 
 const CHARACTER_LIMIT = 500;
@@ -72,8 +73,8 @@ export function CollaborativeEditor({ editorInstance }: EditorProps) {
 
 interface TiptapEditorProps {
   doc: Y.Doc;
-  provider: any;
-  editorInstance?: (instance: any) => void;
+  provider: LiveblocksYjsProvider;
+  editorInstance?: (instance: Editor) => void;
 }
 
 function TiptapEditor({ doc, provider, editorInstance }: TiptapEditorProps) {

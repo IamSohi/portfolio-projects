@@ -1,7 +1,7 @@
 // Sidebar.tsx is a component that displays the sidebar of the application. It contains a list of documents that the user can select from. The user can also add new documents, delete existing documents, and switch between personal and collab documents. The sidebar also displays the user's profile information and provides an option to sign out.
 'use client';
 import React, { useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -17,7 +17,6 @@ import Image from 'next/image';
 // Icons
 import { 
   GroupRounded, 
-  KeyboardArrowDown, 
   Delete, 
   AddCircleOutline 
 } from '@mui/icons-material';
@@ -39,30 +38,24 @@ interface Document {
 }
 
 interface SidebarProps {
-  editorInstance: any;
   isSaved: boolean;
   setIsSaved: React.Dispatch<React.SetStateAction<boolean>>;
-  documentId: string;
   documents: Record<string, Document>;
   selectedDocId: string | null;
-  setRoomId: React.Dispatch<React.SetStateAction<string>>;
   setSelectedDocId: React.Dispatch<React.SetStateAction<string>>;
   setDocuments: React.Dispatch<React.SetStateAction<Record<string, Document>>>;
 }
 
 export default function Sidebar({
-  editorInstance,
   isSaved,
   setIsSaved,
-  documentId,
   documents,
   selectedDocId,
-  setRoomId,
   setSelectedDocId,
   setDocuments
 }: SidebarProps) {
   const { data: session } = useSession();
-  const router = useRouter();
+  // const router = useRouter();
 
   // Memoized document list
   const documentList = useMemo(() => 

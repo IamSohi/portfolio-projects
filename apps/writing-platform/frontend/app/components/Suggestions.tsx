@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { LiveObject } from '@liveblocks/client';
 import { Box, Card, Typography, Button, Alert } from '@mui/joy';
 
+import { Editor } from '@tiptap/core';
 // Types
 interface Suggestion {
   type: 'grammar' | 'style' | 'word-choice';
@@ -20,8 +21,8 @@ interface CorrectionData {
 }
 
 interface Props {
-  editor: any;
-  liveObject: LiveObject<any>;
+  editor: Editor | null;
+  // liveObject: LiveObject<any>;
 }
 
 interface ColorScheme {
@@ -54,11 +55,12 @@ const getCurrentSentence = (text: string, cursorPos: number): string => {
   return text.slice(start, end).trim();
 };
 
-export default function Suggestions({ editor, liveObject }: Props) {
+export default function Suggestions({ editor }: Props) {
   // State
   const [data, setData] = useState<CorrectionData>();
   const [text, setText] = useState<string>('');
 
+  console.log(text)
   // Hooks
   const room = useRoom();
   const { data: session } = useSession();

@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useClient } from "@liveblocks/react/suspense";
+// import { useClient } from "@liveblocks/react/suspense";
 import { LiveObject } from '@liveblocks/client';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -17,6 +17,8 @@ import { CollaborativeEditor } from "@/app/components/CollaborativeEditor";
 import Suggestions from './Suggestions';
 import {ErrorBoundary} from '@/app/components/ErrorBoundary';
 
+import { Editor } from '@tiptap/core';
+
 // Types
 interface Document {
   name: string;
@@ -27,10 +29,10 @@ interface Document {
 interface DocumentsState {
   [key: string]: Document;
 }
-interface Suggestion {
-  type: 'grammar' | 'style' | 'word-choice';
-  message: string;
-}
+// interface Suggestion {
+//   type: 'grammar' | 'style' | 'word-choice';
+//   message: string;
+// }
 
 
 // interface SuggestionData {
@@ -47,14 +49,14 @@ type SuggestionDataType = {
 
 export default function Dashboard({ documentId }: { documentId: string }) {
   // State Management
-  const [editorInstance, setEditorInstance] = useState(null);
+  const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [documents, setDocuments] = useState<DocumentsState>({});
   const [selectedDocId, setSelectedDocId] = useState<string>("collabDoc");
   const [roomId, setRoomId] = useState<string>("liveblocks:examples:collab-room-id");
 
   // Refs & Hooks
-  const client = useClient();
+  // const client = useClient();
   const router = useRouter();
   const suggestionsLiveObject = useMemo(() => 
     new LiveObject<SuggestionDataType>({ 
@@ -129,7 +131,7 @@ export default function Dashboard({ documentId }: { documentId: string }) {
   };
 
   // Editor Functions
-  const handleEditorRef = (instance: any) => {
+  const handleEditorRef = (instance: Editor) => {
     if (instance) setEditorInstance(instance);
   };
 
@@ -137,10 +139,10 @@ export default function Dashboard({ documentId }: { documentId: string }) {
     if (!editorInstance) return;
 
     try {
-      const content = (editorInstance as any).getJSON();
+      const content = (editorInstance as Editor).getJSON();
       console.log(content);
 
-      const hasContent = content.content.some((block: any) => block.content.some((text: any) => text.text.trim() !== ""));
+      const hasContent = content.content?.some((block: any) => block.content.some((text: any) => text.text.trim() !== ""));
 
 
       if (!hasContent) {
@@ -200,11 +202,8 @@ export default function Dashboard({ documentId }: { documentId: string }) {
         <CssVarsProvider disableTransitionOnChange>
           <CssBaseline />
           <Sidebar
-            editorInstance={editorInstance}
             isSaved={isSaved}
             setIsSaved={setIsSaved}
-            documentId={documentId}
-            setRoomId={setRoomId}
             documents={documents}
             selectedDocId={selectedDocId}
             setSelectedDocId={setSelectedDocId}
@@ -238,7 +237,7 @@ export default function Dashboard({ documentId }: { documentId: string }) {
             }}>
               <Suggestions
                 editor={editorInstance}
-                liveObject={suggestionsLiveObject}
+                // liveObject={suggestionsLiveObject}
               />
               <Button
                 size="lg"
