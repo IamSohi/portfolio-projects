@@ -1,0 +1,86 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'apps/writing-platform/backend/**'
+      - 'packages/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: |
+          cd apps/writing-platform/backend
+          npm install
+          
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+          
+      - name: Build Lambda Layer
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/writing-platform/backend
+          file: ./apps/writing-platform/backend/Dockerfile
+          tags: lambda-layer-builder:latest
+          load: true
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          
+      - name: Extract Layer
+        run: |
+          cd apps/writing-platform/backend
+          docker create --name temp lambda-layer-builder
+          docker cp temp:/app/writing-platform-layer.zip ./infrastructure/writing-platform/
+          docker rm temp
+          
+      - name: Build backend
+        run: |
+          cd apps/writing-platform/backend
+          npm run build
+          
+      - name: Deploy to AWS
+        run: |
+          cd apps/writing-platform/backend
+          sam deploy \
+            --template-file ./infrastructure/writing-platform/template.yaml \
+            --stack-name portfolio-projects-stack \
+            --capabilities CAPABILITY_IAM \
+            --region us-west-2 \
+            --s3-bucket portfolio-projects-artifacts \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset

@@ -32,7 +32,7 @@ interface ColorScheme {
 
 // Constants
 const DEBOUNCE_DELAY = 1000;
-const API_ENDPOINT = process.env.SUGGESTIONS_API_ENDPOINT || '';
+const API_ENDPOINT = process.env.SUGGESTIONS_API_ENDPOINT || 'https://8231lohnja.execute-api.us-west-2.amazonaws.com/suggestions';
 
 // Utility functions
 const getSuggestionColor = (type: string): ColorScheme => {
@@ -84,6 +84,9 @@ export default function Suggestions({ editor }: Props) {
     if (!sentence || !accessToken) return;
 
     try {
+      console.log(process.env)
+      console.log(process.env.SUGGESTIONS_API_ENDPOINT)
+      console.log(API_ENDPOINT)
       const response = await fetch(API_ENDPOINT, {
         method: 'POST',
         headers: {
