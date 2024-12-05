@@ -32,7 +32,7 @@ interface ColorScheme {
 
 // Constants
 const DEBOUNCE_DELAY = 1000;
-const API_ENDPOINT = 'http://127.0.0.1:3000/suggestions';
+const API_ENDPOINT = process.env.SUGGESTIONS_API_ENDPOINT || '';
 
 // Utility functions
 const getSuggestionColor = (type: string): ColorScheme => {

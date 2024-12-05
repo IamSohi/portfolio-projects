@@ -10,7 +10,25 @@ const users = [
         name: 'Jill',
         email: 'jill@nextmail.com',
         password: 'jill123',
-      }
-  ];
+    },
+    { 
+        id: '410544b2-4271-4001-9855-fec4b6a6442b',
+        name: 'James Bond', 
+        email: 'jamesbond@nextmail.com', 
+        password: 'james123' 
+    },
+    { 
+        id: '410544b2-4271-4001-9855-fec4b6a6442c',
+        name: 'Loki', 
+        email: 'loki@nextmail.com', 
+        password: 'loki123' 
+    },
+    { 
+        id: '410544b2-4271-4001-9855-fec4b6a6442d',
+        name: 'Terminator', 
+        email: 'terminator@nextmail.com', 
+        password: 'terminator123' 
+    }
+];
 
 export { users };

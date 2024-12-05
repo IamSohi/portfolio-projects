@@ -8,7 +8,7 @@ async function getOpenAIKey(secretArn: string): Promise<string> {
   const command = new GetSecretValueCommand({ SecretId: secretArn });
   const response = await secretsClient.send(command);
   if (response.SecretString) {
-    return JSON.parse(response.SecretString).OPENAI_API_KEY;
+    return JSON.parse(response.SecretString).OPENAIAPIKEY;
   }
   throw new Error("Unable to retrieve OpenAI API Key");
 }
@@ -41,7 +41,7 @@ export class LLMService {
   private openai: OpenAI;
   constructor() {
     this.openai = new OpenAI({
-        apiKey: process.env['OPENAI_API_KEY'], // This is the default and can be omitted
+        apiKey: process.env['OPENAIAPIKEY'], // This is the default and can be omitted
       });
   }
 
