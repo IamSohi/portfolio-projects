@@ -242,7 +242,7 @@ export default function Dashboard() {
                 editor={editorInstance}
                 // liveObject={suggestionsLiveObject}
               />
-              <Button
+              {selectedDocId !== "collabDoc" && <Button
                 size="lg"
                 key="lg"
                 onClick={handleSave}
@@ -252,7 +252,7 @@ export default function Dashboard() {
                 }}
               >
                 Save
-              </Button>
+              </Button>}
             </Box>
           </Room>
         </Box>

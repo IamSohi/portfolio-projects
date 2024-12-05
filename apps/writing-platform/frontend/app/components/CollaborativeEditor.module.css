@@ -1,6 +1,7 @@
 .container {
     display: flex;
     flex-direction: column;
+    flex-grow: 1;
     position: relative;
     border-radius: 12px;
     border: 1px solid #ccc;

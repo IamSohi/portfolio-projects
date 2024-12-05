@@ -32,7 +32,7 @@ interface ColorScheme {
 
 // Constants
 const DEBOUNCE_DELAY = 1000;
-const API_ENDPOINT = process.env.SUGGESTIONS_API_ENDPOINT || 'https://8231lohnja.execute-api.us-west-2.amazonaws.com/suggestions';
+const API_ENDPOINT = 'https://8231lohnja.execute-api.us-west-2.amazonaws.com/suggestions';
 
 // Utility functions
 const getSuggestionColor = (type: string): ColorScheme => {
@@ -206,7 +206,8 @@ export default function Suggestions({ editor }: Props) {
         borderRadius: '12px',
         width: '100%',
         overflowWrap: 'break-word',
-        overflow: 'hidden',
+        overflow: 'scroll',
+        maxHeight: '275px'
       }}
     >
       <Card className="w-full p-4">
