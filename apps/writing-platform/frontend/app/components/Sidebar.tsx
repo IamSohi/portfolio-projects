@@ -1,10 +1,13 @@
 // Sidebar.tsx is a component that displays the sidebar of the application. It contains a list of documents that the user can select from. The user can also add new documents, delete existing documents, and switch between personal and collab documents. The sidebar also displays the user's profile information and provides an option to sign out.
 'use client';
-import React, { useMemo, useCallback } from 'react';
+import React, {useEffect, useState, useMemo, useCallback } from 'react';
 // import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+// import { useSession } from 'next-auth/react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { getSession } from 'next-auth/react';
+import { Session } from 'next-auth';
+
 
 // UI Components
 import { 
@@ -54,8 +57,35 @@ export default function Sidebar({
   setSelectedDocId,
   setDocuments
 }: SidebarProps) {
-  const { data: session } = useSession();
+  // const { data: session } = useSession();
+  // const { data: session, status, update } = useSession();
+
   // const router = useRouter();
+
+  // useEffect(() => {
+  //   console.log("session.....")
+  //   console.log(session)
+  //   // Force a session update when the component mounts
+  //   if (status === 'authenticated') {
+  //     update(); // This will fetch the latest session data
+  //   }
+  // }, [status, update]);
+
+
+  // const [session, setSession] = useState(null);
+
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      const session = await getSession();
+      setSession(session);
+    };
+
+    fetchSession();
+  }, []);
+
+
 
   // Memoized document list
   const documentList = useMemo(() => 

@@ -8,7 +8,6 @@ export const Providers = ({ children }: PropsWithChildren) => {
     
     return (
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
-        {/* {children} */}
       <SessionProvider>{children}</SessionProvider>
     </LiveblocksProvider>
     )

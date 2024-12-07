@@ -12,6 +12,9 @@ export const authConfig = {
       const isLoggedIn = !!auth?.user;
       // Updated condition to check if the user is on the login page
       const isOnLoginPage = nextUrl.pathname.startsWith('/login'); 
+      if (!isLoggedIn) {
+        return false;
+      }
       if (isOnLoginPage) {
         if (isLoggedIn) {
           return Response.redirect(new URL('/#collabDoc', nextUrl));
@@ -28,21 +31,20 @@ export const authConfig = {
       return true;
     },
     session({ session, token, user }) {
-      // `session.user.address` is now a valid property, and will be type-checked
-      // in places like `useSession().data.user` or `auth().user`
-      session.user.accessToken = token
       console.log("session",session)
+      console.log("token",token)
+      console.log("user",user)
       console.log("token",JSON.stringify(token))
-      return {
-        ...session,
-        user: {
-          ...session.user,
-        },
+      if (token && session.user) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        session.user.accessToken = token
       }
+      return session;
+      
     },
     jwt({ token, user, account, profile, isNewUser }) {
-      // Initial sign in
-
       console.log("token",token)
       console.log("user",user)
       console.log("account",account)
@@ -50,7 +52,10 @@ export const authConfig = {
       console.log("isNewUser",isNewUser)
       if (account && user) {
         console.log("In........................")  
-
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+  
         const jwtSecret = process.env.AUTH_SECRET || ''; // Provide a default value if JWT_SECRET is undefined
         token.accessToken = jwt.sign(
           {
@@ -61,7 +66,6 @@ export const authConfig = {
           jwtSecret,
           { expiresIn: '1h' }
         );
-        console.log("jwt",token)  
       }
       return token;
     },
