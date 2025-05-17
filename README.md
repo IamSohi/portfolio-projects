@@ -1,3 +1,22 @@
+# Portfolio Projects
+
+This is a monorepo-style collection of my personal portfolio projects, which I’m actively working on. As I explore new tools and technologies, I update this repository to reflect what I’ve learned. Check out the completed projects below.
+
+---
+
+# 📝 AI-Powered Collaborative Editor
+
+A deceptively simple collaborative editor powered by OpenAI APIs, enabling real-time grammar, tone, and style suggestions. While the interface is minimalist, the architecture is robust — featuring serverless deployment, AI prompt engineering, real-time collaboration, and secure authentication.
+
+> 🚀 **DEMO:** [Give it a Try!](https://portfolio-projects-writing-platform.vercel.app/)
+
+> 🚀 **Documentation:** [Read Here](https://github.com/IamSohi/portfolio-projects/tree/main/apps/writing-platform)
+
+> 📘 **Note:** Full documentation is in progress. This file serves as a project summary and implementation snapshot.
+
+---
+
+
 # Turborepo starter
 
 This is an official starter Turborepo.
