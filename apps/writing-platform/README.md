@@ -3,6 +3,7 @@
 A deceptively simple collaborative editor powered by OpenAI APIs, enabling real-time grammar, tone, and style suggestions. While the interface is minimalist, the architecture is robust — featuring serverless deployment, AI prompt engineering, real-time collaboration, and secure authentication.
 
 > 🚀 **DEMO:** [Give it a Try!](https://portfolio-projects-writing-platform.vercel.app/)
+
 > 📘 **Note:** Full documentation is in progress. This file serves as a project summary and implementation snapshot.
 
 ---
