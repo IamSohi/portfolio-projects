@@ -6,12 +6,15 @@ A deceptively simple collaborative editor powered by OpenAI APIs, enabling real-
 
 ---
 
+![Architecture Diagram](./ArchitectureDiagram.png) <!-- Replace with actual path to your diagram -->
+
+---
+
 ## 🚀 Technologies Used
 
 ### Languages
 - TypeScript
 - Node.js
-- Python
 
 ### Frameworks & Libraries
 - Next.js
@@ -44,7 +47,6 @@ A deceptively simple collaborative editor powered by OpenAI APIs, enabling real-
 - Lambda & Lambda Layers
 - API Gateway
 - DynamoDB
-- S3
 - Secrets Manager
 - IAM Policies
 
@@ -150,5 +152,8 @@ Deployed via **AWS SAM** with the following architecture:
 ## 📬 Contact
 
 For questions, ideas, or contributions, please feel free to reach out.
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue?logo=linkedin&logoColor=white&style=flat-square)](https://www.linkedin.com/in/sukhveersohi/)
+
 
 ---
