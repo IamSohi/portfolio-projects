@@ -6,7 +6,7 @@ A deceptively simple collaborative editor powered by OpenAI APIs, enabling real-
 
 ---
 
-# 🧱 AI-Powered Collaborative Editor
+# 🧱 Architechture Diagram
 
 ![Architecture Diagram](./ArchitectureDiagram.png) <!-- Replace with actual path to your diagram -->
 
